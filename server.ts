@@ -4,8 +4,7 @@ import fs from 'fs';
 import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
-import { GoogleGenAI } from '@google/genai';
-import { 
+import {
   INITIAL_CLINIC_INFO, 
   INITIAL_DOCTOR, 
   INITIAL_SERVICES, 
@@ -168,19 +167,6 @@ function autoScanUploadedDoctorPhoto() {
   }
 }
 autoScanUploadedDoctorPhoto();
-
-// Lazy Gemini API client
-let aiClient: GoogleGenAI | null = null;
-function getGeminiClient(): GoogleGenAI {
-  if (!aiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      throw new Error('GEMINI_API_KEY environment variable is missing.');
-    }
-    aiClient = new GoogleGenAI({ apiKey });
-  }
-  return aiClient;
-}
 
 // ================= API ROUTES =================
 
@@ -2821,58 +2807,6 @@ app.get('/api/reports/export', (req, res) => {
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', 'attachment; filename=appointments_report.csv');
   return res.send(csv);
-});
-
-// Gemini AI Symptom Advisor API
-app.post('/api/ai/physio-advisor', async (req, res) => {
-  try {
-    const { symptomDescription, durationDays, intensity } = req.body;
-    
-    if (!symptomDescription) {
-      return res.status(400).json({ error: 'Symptom description is required' });
-    }
-
-    const ai = getGeminiClient();
-    const prompt = `You are the AI Clinical Triage Assistant for Krishnaveni Advanced Physiotherapy & Rehabilitation Services (Chief Doctor: Dr. P. Sai Tejaswini, MPT Neuro, MIAP).
-A patient is describing their physical symptom / discomfort:
-"Symptom: ${symptomDescription}. Duration: ${durationDays || 'Recent'}. Pain Intensity: ${intensity || 5}/10"
-
-Our clinic offers comprehensive multispecialty physiotherapy care for ALL physical conditions (Neurological, Orthopaedic, Back/Neck Spine, Sports Injuries, Post-Surgical Rehab, Pediatric & Mobility Care) for all consultations and therapy sessions.
-
-Available Services at our clinic:
-1. Neurological Rehabilitation (Stroke, Parkinson's, Balance)
-2. Stroke Rehabilitation
-3. Back & Spine Pain Relief
-4. Neck & Shoulder Stiffness Therapy
-5. Sports Injury & Joint Rehabilitation
-6. Post-Surgical Rehabilitation
-7. Pediatric Physiotherapy
-8. Online Video Consultation
-9. Home Visit & General Physiotherapy
-
-Provide a compassionate, professional, preliminary assessment containing:
-1. **Clinical Impression**: Brief explanation of potential musculoskeletal or neuro causes.
-2. **Recommended Physiotherapy Service**: Select the best matching service from above.
-3. **Immediate Home Care / Ergo Advice**: 2-3 safe initial posture/stretching guidelines (disclaimer: not a substitute for formal diagnosis).
-4. **Red Flags Alert**: Signs that require urgent in-person medical attention.
-
-Format clearly in structured markdown. Keep it concise, reassuring, and helpful.`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt
-    });
-
-    res.json({
-      recommendation: response.text
-    });
-  } catch (error: any) {
-    console.error('Gemini AI Advisor Error:', error);
-    res.status(500).json({ 
-      error: 'AI Advisor currently unavailable', 
-      details: error?.message || 'Server error'
-    });
-  }
 });
 
 // ================= VITE / STATIC SERVING =================

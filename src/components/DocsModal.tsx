@@ -143,7 +143,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      - GEMINI_API_KEY=\${GEMINI_API_KEY}
     restart: always
 
   postgres:
@@ -189,10 +188,6 @@ POST /api/payments/razorpay/create-order
 Description: Initialize Razorpay transaction order
 Body: { amount, serviceName, patientName }
 
-POST /api/ai/physio-advisor
-Description: Server-side Gemini AI clinical triage assistant
-Body: { symptomDescription, durationDays, intensity }
-Returns: { recommendation: Markdown }
 `;
 
   const readmeContent = `# Krishnaveni Advanced Physiotherapy & Rehabilitation Services Web Application
