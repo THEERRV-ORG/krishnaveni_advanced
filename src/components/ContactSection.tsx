@@ -22,7 +22,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ clinicInfo }) =>
   const hours = clinicInfo.workingHours.split('|').map(line => line.trim()).filter(Boolean);
 
   return (
-    <section id="contact" className="py-16 sm:py-24 bg-paper-deep/60 border-t border-line scroll-mt-16">
+    <section id="contact" className="py-16 sm:py-24 bg-paper-deep/60 border-t border-line scroll-mt-24">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
 
         <div className="lg:col-span-5">

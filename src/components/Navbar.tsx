@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Menu, X, Phone } from 'lucide-react';
 import { ClinicInfo } from '../types';
 import clinicLogo from '../assets/images/krishnaveni_physio_logo_1785932195343.jpg';
@@ -28,6 +28,58 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenPatientPortal,
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  const revealedByHover = useRef(false);
+  const pastHeroRef = useRef(false);
+
+  useEffect(() => {
+    let lastY = window.scrollY;
+
+    const heroEnd = () => {
+      const hero = document.getElementById('home');
+      return hero ? hero.offsetTop + hero.offsetHeight : 0;
+    };
+
+    const onScroll = () => {
+      const y = window.scrollY;
+      const delta = y - lastY;
+      lastY = y;
+      pastHeroRef.current = y > heroEnd();
+
+      if (!pastHeroRef.current) {
+        setHidden(false);
+      } else if (delta > 4) {
+        revealedByHover.current = false;
+        setHidden(true);
+      } else if (delta < -4) {
+        revealedByHover.current = false;
+        setHidden(false);
+      }
+    };
+
+    // Reveal when the pointer reaches the top edge of the window.
+    const onMouseMove = (e: MouseEvent) => {
+      if (pastHeroRef.current && e.clientY <= 16) {
+        revealedByHover.current = true;
+        setHidden(false);
+      }
+    };
+
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('mousemove', onMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('mousemove', onMouseMove);
+    };
+  }, []);
+
+  const handleMouseLeave = () => {
+    if (revealedByHover.current && pastHeroRef.current && !mobileMenuOpen) {
+      revealedByHover.current = false;
+      setHidden(true);
+    }
+  };
 
   const handleNavClick = (id: string) => {
     setActiveSection(id);
@@ -36,21 +88,31 @@ export const Navbar: React.FC<NavbarProps> = ({
   };
 
   return (
-    <header className="sticky top-0 z-50 bg-paper border-b border-line">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+    <header
+      onMouseLeave={handleMouseLeave}
+      onFocus={() => setHidden(false)}
+      className={`sticky top-0 z-50 bg-paper border-b border-line transition-transform duration-300 ease-out ${
+        hidden && !mobileMenuOpen ? '-translate-y-full' : 'translate-y-0'
+      }`}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 min-h-16 flex items-center justify-between gap-6">
         <button
           type="button"
           onClick={() => handleNavClick('home')}
-          className="flex items-center gap-3 text-left shrink-0"
+          className="flex items-center gap-3 text-left min-w-0"
         >
-          <img src={clinicLogo} alt="" className="w-9 h-9 rounded-md object-contain bg-white border border-line" />
-          <span className="leading-tight">
-            <span className="block font-serif text-[17px] text-ink">Krishnaveni Physio</span>
-            <span className="block text-xs text-ink-mute">Dr. P. Sai Tejaswini, MPT (Neuro)</span>
+          <img src={clinicLogo} alt="" className="w-11 h-11 shrink-0 rounded-xl object-contain bg-white border border-line" />
+          <span className="leading-tight min-w-0">
+            <span className="block text-base sm:text-lg font-bold tracking-tight text-primary-deep">
+              KRISHNAVENI <span className="text-accent">ADVANCED</span>
+            </span>
+            <span className="block max-w-[22rem] text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-primary">
+              Physiotherapy &amp; Rehabilitation Services • Dr. P. Sai Tejaswini, MPT (Neuro), MIAP
+            </span>
           </span>
         </button>
 
-        <nav className="hidden lg:flex items-center gap-6 text-sm text-ink-soft">
+        <nav className="hidden xl:flex shrink-0 items-center gap-5 whitespace-nowrap text-sm text-ink-soft">
           {navItems.map(item => (
             <button
               key={item.id}
@@ -67,7 +129,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           ))}
         </nav>
 
-        <div className="hidden lg:flex items-center gap-5">
+        <div className="hidden xl:flex shrink-0 items-center gap-5 whitespace-nowrap">
           <button
             type="button"
             onClick={onOpenPatientPortal}
@@ -89,14 +151,14 @@ export const Navbar: React.FC<NavbarProps> = ({
           onClick={() => setMobileMenuOpen(open => !open)}
           aria-label={mobileMenuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={mobileMenuOpen}
-          className="lg:hidden p-2 -mr-2 text-ink"
+          className="xl:hidden p-2 -mr-2 text-ink"
         >
           {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-line bg-paper px-4 pb-5">
+        <div className="xl:hidden border-t border-line bg-paper px-4 pb-5">
           <nav className="flex flex-col py-2">
             {navItems.map(item => (
               <button

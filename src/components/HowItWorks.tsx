@@ -24,7 +24,7 @@ const CHECKLIST = [
 
 export const HowItWorks: React.FC = () => {
   return (
-    <section id="how-it-works" className="py-16 sm:py-24 scroll-mt-16">
+    <section id="how-it-works" className="py-16 sm:py-24 scroll-mt-24">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <span className="band mb-5" />
         <h2 className="text-3xl sm:text-4xl text-ink">How a consultation works</h2>

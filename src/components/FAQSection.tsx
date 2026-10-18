@@ -10,7 +10,7 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqs }) => {
   const [openId, setOpenId] = useState<string>(faqs[0]?.id || '');
 
   return (
-    <section id="faqs" className="py-16 sm:py-24 scroll-mt-16">
+    <section id="faqs" className="py-16 sm:py-24 scroll-mt-24">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-10">
         <div className="lg:col-span-4">
           <span className="band mb-5" />

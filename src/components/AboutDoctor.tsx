@@ -18,7 +18,7 @@ const QUALIFICATIONS = [
 
 export const AboutDoctor: React.FC<AboutDoctorProps> = ({ doctor, onOpenBooking }) => {
   return (
-    <section id="about" className="py-16 sm:py-24 scroll-mt-16">
+    <section id="about" className="py-16 sm:py-24 scroll-mt-24">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
 
         <div className="lg:col-span-6">
