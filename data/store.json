@@ -28,8 +28,8 @@
     "qualification": "MPT (Neurology), BPT, MIAP, Certified Bobath, Taping & PNF Practitioner",
     "specialization": "Comprehensive Physiotherapy Care (Neurological, Orthopedic, Sports, Post-Op, Women’s Health, Cardiology & Pulmonology)",
     "experienceYears": 4,
-    "bio": "Dr. P. Sai Tejaswini is a highly respected Physiotherapist (MPT Neuro, MIAP) with 4 years of clinical excellence providing comprehensive, evidence-based physiotherapy care across specialized physical conditions—including neurological recovery, orthopaedic joint & spine pain, post-surgical rehabilitation, sports injuries, and women’s health. She provides personalized, evidence-based rehabilitation with all consultation and physical therapy sessions offered with transparent patient care.",
-    "avatarUrl": "/api/doctor-photo?t=1792342587576",
+    "bio": "Dr. P. Sai Tejaswini is a physiotherapist with a master's degree in neurological physiotherapy (MPT Neuro) and four years of clinical practice. She is a member of the Indian Association of Physiotherapists.\n\nHer work covers neurological recovery, back, neck and joint pain, rehabilitation after surgery, sports injuries and women's health. Each plan starts from assessment: a full history, a look at how you move on camera, a reading of your scans, and an exercise programme built around what she finds.",
+    "avatarUrl": "https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&q=80&w=800",
     "consultationFee": 1,
     "availableDays": [
       "Monday",
@@ -251,14 +251,8 @@
     {
       "id": "faq-1",
       "category": "Online Consultation",
-      "question": "How does an Online Physiotherapy Consultation work?",
-      "answer": "Once you book an online consultation, you receive a Google Meet/Zoom link along with meeting credentials. During your video call, Dr. P. Sai Tejaswini conducts a comprehensive movement and posture assessment, reviews your medical scans/reports, and prescribes a personalized home exercise regimen with a downloadable PDF prescription."
-    },
-    {
-      "id": "faq-2",
-      "category": "Booking & Payment",
-      "question": "What payment modes are accepted and is instant confirmation provided?",
-      "answer": "We accept Credit/Debit cards, UPI (Google Pay, PhonePe, Paytm), NetBanking via Razorpay. Upon successful payment, your appointment is instantly confirmed with an automated email receipt, invoice, and Google Meet/Zoom link."
+      "question": "How does an online consultation work?",
+      "answer": "After you book, you receive a Google Meet link for your slot. On the call, Dr. Tejaswini takes your history, assesses your movement and posture on camera, goes through any scans you have shared, and gives you a home exercise programme."
     },
     {
       "id": "faq-3",
@@ -269,11 +263,46 @@
     {
       "id": "faq-4",
       "category": "General",
-      "question": "Can I upload my MRI scans or X-ray reports before consultation?",
-      "answer": "Yes! During the appointment booking process or via your Patient Dashboard, you can securely upload PDF or JPG medical reports so Dr. Tejaswini can review them prior to your session."
+      "question": "Can I share my MRI or X-ray reports before the consultation?",
+      "answer": "Yes. Attach PDF or JPG reports while booking, or later from Track booking, so Dr. Tejaswini can read them before your session."
     }
   ],
   "appointments": [
+    {
+      "id": "APT-2026-7671",
+      "patientId": "pat-1792347093043",
+      "patientName": "UI Test Patient",
+      "patientAge": 30,
+      "patientGender": "Male",
+      "patientPhone": "9876543210",
+      "patientEmail": "uitest@example.com",
+      "patientAddress": "N/A",
+      "serviceId": "online-consult",
+      "doctorName": "Dr. P. Sai Tejaswini",
+      "consultationType": "Online Consultation",
+      "date": "2026-10-19",
+      "timeSlot": "02:00 PM - 02:45 PM",
+      "durationMinutes": 45,
+      "status": "Confirmed",
+      "problemDescription": "Online Physiotherapy Consultation",
+      "medicalHistory": "",
+      "medicalReports": [],
+      "amountPaid": 0,
+      "paymentStatus": "Paid",
+      "razorpayOrderId": "order_exaxnbvj",
+      "razorpayPaymentId": "pay_1792347093043",
+      "meetingLink": "https://meet.jit.si/KrishnaveniRehab_DrSaiTejaswini_Consult",
+      "meetingPassword": "KPV-358",
+      "invoiceNumber": "INV-2026-8393",
+      "whatsappDispatched": true,
+      "whatsappFrom": "+91 94906 05809",
+      "whatsappTo": "9876543210",
+      "whatsappStatus": "Delivered",
+      "emailDispatched": true,
+      "emailFrom": "krishnavenirehab@gmail.com",
+      "emailTo": "uitest@example.com",
+      "createdAt": "2026-10-18T18:11:33.043Z"
+    },
     {
       "id": "APT-2026-3411",
       "patientId": "pat-1792345728667",
@@ -3311,6 +3340,21 @@
   ],
   "payments": [
     {
+      "id": "PAY-1792347093043",
+      "appointmentId": "APT-2026-7671",
+      "patientName": "UI Test Patient",
+      "amount": 0,
+      "gstAmount": 0,
+      "totalAmount": 0,
+      "currency": "INR",
+      "status": "Paid",
+      "razorpayPaymentId": "pay_1792347093043",
+      "razorpayOrderId": "order_exaxnbvj",
+      "paymentMethod": "Pending",
+      "createdAt": "2026-10-18T18:11:33.043Z",
+      "invoiceNumber": "INV-2026-8393"
+    },
+    {
       "id": "PAY-1792345728667",
       "appointmentId": "APT-2026-3411",
       "patientName": "ram",
@@ -5631,6 +5675,13 @@
     }
   ],
   "activityLogs": [
+    {
+      "id": "log-1792347093043",
+      "action": "New Appointment Booked",
+      "userEmail": "uitest@example.com",
+      "details": "Booked undefined on 2026-10-19 at 02:00 PM - 02:45 PM",
+      "timestamp": "2026-10-18T18:11:33.043Z"
+    },
     {
       "id": "log-1792345728668",
       "action": "New Appointment Booked",

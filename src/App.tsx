@@ -3,14 +3,13 @@ import { Navbar } from './components/Navbar';
 import { HeroBanner } from './components/HeroBanner';
 import { AboutDoctor } from './components/AboutDoctor';
 import { ServicesGrid } from './components/ServicesGrid';
-import { WhyChooseUs } from './components/WhyChooseUs';
+import { HowItWorks } from './components/HowItWorks';
 import { BookingModal } from './components/BookingModal';
 import { PatientDashboard } from './components/PatientDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { TestimonialsSection } from './components/TestimonialsSection';
 import { FAQSection } from './components/FAQSection';
 import { ContactSection } from './components/ContactSection';
-import { DocsModal } from './components/DocsModal';
 import { Footer } from './components/Footer';
 
 import { 
@@ -31,7 +30,8 @@ import {
   INITIAL_FAQS 
 } from './data/initialData';
 
-import { MessageSquare, Phone, Calendar } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
+import { whatsappLink } from './utils/whatsapp';
 
 export default function App() {
   const [clinicInfo, setClinicInfo] = useState<ClinicInfo>(INITIAL_CLINIC_INFO);
@@ -51,7 +51,6 @@ export default function App() {
 
   const [patientDashboardOpen, setPatientDashboardOpen] = useState(false);
   const [adminDashboardOpen, setAdminDashboardOpen] = useState(false);
-  const [docsModalOpen, setDocsModalOpen] = useState(false);
 
   // Fetch live store data from backend Express server
   useEffect(() => {
@@ -104,59 +103,31 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans selection:bg-blue-600 selection:text-white relative overflow-x-hidden">
-      
-      {/* Background Mesh Gradients for Frosted Glass Depth */}
-      <div className="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-blue-200/50 rounded-full blur-[120px] pointer-events-none z-0" />
-      <div className="absolute top-[600px] left-[-150px] w-[450px] h-[450px] bg-cyan-200/40 rounded-full blur-[100px] pointer-events-none z-0" />
-      <div className="absolute top-[1500px] right-[-100px] w-[500px] h-[500px] bg-blue-300/30 rounded-full blur-[130px] pointer-events-none z-0" />
-      <div className="absolute top-[2600px] left-[-100px] w-[400px] h-[400px] bg-teal-200/40 rounded-full blur-[110px] pointer-events-none z-0" />
-
-      {/* Navbar */}
+    <div className="min-h-screen pb-16 md:pb-0">
       <Navbar
         clinicInfo={clinicInfo}
         activeSection={activeSection}
         setActiveSection={setActiveSection}
         onOpenBooking={() => handleOpenBooking('Online Consultation')}
         onOpenPatientPortal={() => setPatientDashboardOpen(true)}
-        onOpenAdminPortal={() => setAdminDashboardOpen(true)}
-        onOpenDocsModal={() => setDocsModalOpen(true)}
       />
 
-      {/* Hero Banner Section */}
-      <div id="home">
-        <HeroBanner
-          onOpenBooking={() => handleOpenBooking('Online Consultation')}
-          doctor={doctor}
-        />
-      </div>
+      <main>
+        <div id="home">
+          <HeroBanner
+            onOpenBooking={() => handleOpenBooking('Online Consultation')}
+            doctor={doctor}
+            clinicInfo={clinicInfo}
+          />
+        </div>
+        <AboutDoctor doctor={doctor} onOpenBooking={() => handleOpenBooking('Online Consultation')} />
+        <ServicesGrid onOpenBooking={(issues) => handleOpenBooking('Online Consultation', null, [], issues || '')} />
+        <HowItWorks />
+        <TestimonialsSection testimonials={testimonials} whatsapp={clinicInfo.whatsapp} />
+        <FAQSection faqs={faqs} />
+        <ContactSection clinicInfo={clinicInfo} />
+      </main>
 
-      {/* About Doctor & Clinic */}
-      <AboutDoctor
-        doctor={doctor}
-        clinicInfo={clinicInfo}
-        onOpenBooking={() => handleOpenBooking('Online Consultation')}
-        onDoctorUpdated={(updatedDoc) => setDoctor(updatedDoc)}
-      />
-
-      {/* Services Grid (Departments & What We Treat) */}
-      <ServicesGrid
-        onOpenBooking={(issues) => handleOpenBooking('Online Consultation', null, [], issues || '')}
-      />
-
-      {/* Why Choose Us */}
-      <WhyChooseUs />
-
-      {/* Patient Reviews & Testimonials */}
-      <TestimonialsSection testimonials={testimonials} />
-
-      {/* FAQs */}
-      <FAQSection faqs={faqs} />
-
-      {/* Contact & Map */}
-      <ContactSection clinicInfo={clinicInfo} />
-
-      {/* Footer */}
       <Footer
         clinicInfo={clinicInfo}
         onOpenBooking={() => handleOpenBooking('Online Consultation')}
@@ -164,23 +135,26 @@ export default function App() {
         onOpenAdminPortal={() => setAdminDashboardOpen(true)}
       />
 
-      {/* Floating Action Buttons */}
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-3 pointer-events-none">
-        
-        {/* Floating WhatsApp Quick Chat */}
+      {/* Mobile action bar */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-paper border-t border-line px-4 py-2.5 grid grid-cols-2 gap-3">
         <a
-          href={`https://wa.me/919490605809?text=Hello%20Dr.%20Sai%20Tejaswini,%20I%20would%20like%20to%20book%20an%20online%20physiotherapy%20consultation.`}
+          href={whatsappLink(clinicInfo.whatsapp)}
           target="_blank"
           rel="noreferrer"
-          className="pointer-events-auto bg-emerald-500 hover:bg-emerald-600 text-white p-3.5 rounded-full shadow-2xl hover:scale-110 transition-transform flex items-center justify-center border-2 border-white"
-          title="Chat with Dr. P. Sai Tejaswini on WhatsApp"
+          className="flex items-center justify-center gap-2 border border-primary text-primary font-semibold text-sm py-2.5 rounded-md"
         >
-          <MessageSquare className="w-6 h-6" />
+          <MessageCircle className="w-4 h-4" />
+          Chat on WhatsApp
         </a>
-
+        <button
+          type="button"
+          onClick={() => handleOpenBooking('Online Consultation')}
+          className="bg-accent text-ink font-semibold text-sm py-2.5 rounded-md"
+        >
+          Book
+        </button>
       </div>
 
-      {/* Booking Wizard Modal */}
       <BookingModal
         services={services}
         preselectedService={bookingPreselectedService}
@@ -192,14 +166,12 @@ export default function App() {
         onBookingComplete={handleBookingComplete}
       />
 
-      {/* Patient Dashboard Modal */}
       <PatientDashboard
         isOpen={patientDashboardOpen}
         onClose={() => setPatientDashboardOpen(false)}
         onBookNew={() => handleOpenBooking('Online Consultation')}
       />
 
-      {/* Admin Dashboard Modal */}
       <AdminDashboard
         isOpen={adminDashboardOpen}
         onClose={() => setAdminDashboardOpen(false)}
@@ -208,13 +180,6 @@ export default function App() {
         doctor={doctor}
         onDoctorUpdated={(updatedDoc) => setDoctor(updatedDoc)}
       />
-
-      {/* Tech Architecture Docs Modal */}
-      <DocsModal
-        isOpen={docsModalOpen}
-        onClose={() => setDocsModalOpen(false)}
-      />
-
     </div>
   );
 }

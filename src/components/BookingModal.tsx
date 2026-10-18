@@ -1,23 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   X,
-  Calendar,
-  Clock,
-  Phone,
-  Mail,
   Upload,
   CheckCircle2,
   Video,
   FileText,
   ArrowLeft,
   Loader2,
-  Sparkles,
   Copy,
   Check,
   ExternalLink,
-  PenLine,
   AlertCircle,
-  ChevronRight
 } from 'lucide-react';
 import { Service, ConsultationType, TimeSlot, Appointment } from '../types';
 
@@ -45,15 +38,23 @@ function isSlotInFutureForDate(slotTimeString: string, dateStr: string): boolean
   if (dateStr > todayStr) return true;
   if (dateStr < todayStr) return false;
   const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const slotMinutes = parseSlotMinutes(slotTimeString);
-  return slotMinutes > currentMinutes;
+  return parseSlotMinutes(slotTimeString) > now.getHours() * 60 + now.getMinutes();
 }
 
 // Indian mobile: 10 digits, starts with 6-9
 function isValidIndianPhone(phone: string): boolean {
   return /^[6-9]\d{9}$/.test(phone.replace(/\s/g, ''));
 }
+
+function formatLongDate(iso: string): string {
+  const date = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+const inputClass =
+  'w-full bg-white border border-line rounded-md px-3 py-2.5 text-ink placeholder:text-ink-mute focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary';
+const labelClass = 'block text-sm text-ink-soft mb-1';
 
 interface BookingModalProps {
   services?: Service[];
@@ -66,39 +67,40 @@ interface BookingModalProps {
   onBookingComplete: (appointment: Appointment) => void;
 }
 
+const STEP_LABELS = ['Date and time', 'Your details', 'Confirmed'];
+
 export const BookingModal: React.FC<BookingModalProps> = ({
   preselectedService = null,
   initialReports = [],
   initialProblemDescription = '',
   isOpen,
   onClose,
-  onBookingComplete
+  onBookingComplete,
 }) => {
   const [step, setStep] = useState<number>(1);
 
-  // Date & Slot
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString());
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [selectedSlot, setSelectedSlot] = useState<string>('');
   const [loadingSlots, setLoadingSlots] = useState<boolean>(false);
 
-  const visibleSlots = useMemo(() => {
-    return timeSlots.filter(slot => isSlotInFutureForDate(slot.timeString, selectedDate));
-  }, [timeSlots, selectedDate]);
+  const visibleSlots = useMemo(
+    () => timeSlots.filter(slot => isSlotInFutureForDate(slot.timeString, selectedDate)),
+    [timeSlots, selectedDate],
+  );
 
   useEffect(() => {
     if (visibleSlots.length > 0) {
       const isCurrentlyValid = visibleSlots.some(s => s.timeString === selectedSlot && s.isAvailable);
       if (!isCurrentlyValid) {
         const firstAvail = visibleSlots.find(s => s.isAvailable);
-        setSelectedSlot(firstAvail ? firstAvail.timeString : visibleSlots[0].timeString);
+        setSelectedSlot(firstAvail ? firstAvail.timeString : '');
       }
     } else {
       setSelectedSlot('');
     }
   }, [visibleSlots, selectedSlot]);
 
-  // Patient Info
   const [patientName, setPatientName] = useState('');
   const [patientAge, setPatientAge] = useState<number | ''>('');
   const [patientGender, setPatientGender] = useState<'Male' | 'Female' | 'Other' | ''>('');
@@ -108,19 +110,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [problemDescription, setProblemDescription] = useState(initialProblemDescription || '');
   const [medicalReports, setMedicalReports] = useState<{ name: string; url: string; uploadedAt: string }[]>(initialReports);
   const [uploadingReport, setUploadingReport] = useState(false);
-
-  // Phone validation state
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
-  // Submission state
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Confirmation state
   const [confirmedAppointment, setConfirmedAppointment] = useState<Appointment | null>(null);
-  const [copiedMsg, setCopiedMsg] = useState(false);
+  const [copied, setCopied] = useState<'id' | 'details' | null>(null);
 
-  const prevIsOpenRef = React.useRef(false);
+  const prevIsOpenRef = useRef(false);
   useEffect(() => {
     const justOpened = isOpen && !prevIsOpenRef.current;
     prevIsOpenRef.current = isOpen;
@@ -138,7 +136,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setMedicalReports(initialReports && initialReports.length > 0 ? initialReports : []);
     setSubmitting(false);
     setConfirmedAppointment(null);
-    setCopiedMsg(false);
+    setCopied(null);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
@@ -150,12 +148,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         const res = await fetch(`/api/slots?date=${selectedDate}`);
         const data = await res.json();
         setTimeSlots(data.slots || []);
-        if (data.slots && data.slots.length > 0) {
-          const available = data.slots.find((s: TimeSlot) => s.isAvailable);
-          if (available) setSelectedSlot(available.timeString);
-        }
       } catch (err) {
         console.error('Failed to fetch slots', err);
+        setTimeSlots([]);
       } finally {
         setLoadingSlots(false);
       }
@@ -172,18 +167,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        const base64 = reader.result as string;
         const res = await fetch('/api/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: file.name, fileData: base64 })
+          body: JSON.stringify({ filename: file.name, fileData: reader.result as string }),
         });
         const data = await res.json();
         setMedicalReports(prev => [...prev, data]);
       } catch {
         setMedicalReports(prev => [
           ...prev,
-          { name: file.name, url: URL.createObjectURL(file), uploadedAt: new Date().toISOString().split('T')[0] }
+          { name: file.name, url: URL.createObjectURL(file), uploadedAt: new Date().toISOString().split('T')[0] },
         ]);
       } finally {
         setUploadingReport(false);
@@ -195,26 +189,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const handlePhoneChange = (val: string) => {
     const digits = val.replace(/\D/g, '');
     setPatientPhone(digits);
-    if (digits.length === 0) {
-      setPhoneError(null);
-    } else if (digits.length < 10) {
-      setPhoneError('Enter a 10-digit Indian mobile number');
-    } else if (!isValidIndianPhone(digits)) {
-      setPhoneError('Number must start with 6, 7, 8, or 9');
-    } else {
-      setPhoneError(null);
-    }
+    if (digits.length === 0) setPhoneError(null);
+    else if (digits.length < 10) setPhoneError('Enter a 10-digit mobile number.');
+    else if (!isValidIndianPhone(digits)) setPhoneError('Indian mobile numbers start with 6, 7, 8 or 9.');
+    else setPhoneError(null);
   };
 
   const handleSubmitBooking = async () => {
-    if (!patientName.trim()) { setErrorMsg('Please enter your name.'); return; }
-    if (!patientPhone.trim()) { setErrorMsg('Please enter your phone number.'); return; }
-    if (!isValidIndianPhone(patientPhone)) { setErrorMsg('Please enter a valid 10-digit Indian mobile number.'); return; }
-    if (!patientEmail.trim()) { setErrorMsg('Please enter your email.'); return; }
+    if (!patientName.trim()) { setErrorMsg('Enter your name.'); return; }
+    if (!isValidIndianPhone(patientPhone)) { setErrorMsg('Enter a valid 10-digit Indian mobile number.'); return; }
+    if (!patientEmail.trim()) { setErrorMsg('Enter your email address.'); return; }
 
     setErrorMsg(null);
     setSubmitting(true);
-
     try {
       const res = await fetch('/api/appointments', {
         method: 'POST',
@@ -229,124 +216,94 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           serviceId: preselectedService?.id || 'online-consult',
           consultationType: 'Online Consultation',
           date: selectedDate,
-          timeSlot: selectedSlot || '10:00 AM - 10:45 AM',
+          timeSlot: selectedSlot,
           problemDescription: problemDescription.trim() || 'Online Physiotherapy Consultation',
           medicalReports,
           amountPaid: 0,
-          paymentMethod: 'Pending'
-        })
+          paymentMethod: 'Pending',
+        }),
       });
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'Booking failed. Please try again.');
+        throw new Error(err.error || 'The booking could not be saved. Try again, or contact us on WhatsApp.');
       }
 
       const appointment: Appointment = await res.json();
       setConfirmedAppointment(appointment);
-      onBookingComplete(appointment);
       setStep(3);
+      onBookingComplete(appointment);
     } catch (err: any) {
-      setErrorMsg(err.message || 'Something went wrong. Please try again.');
+      setErrorMsg(err.message || 'The booking could not be saved. Try again, or contact us on WhatsApp.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  // ── Stepper ────────────────────────────────────────────────────────────────
-  const stepLabels = ['Date & Slot', 'Your Details', 'Confirmed!'];
+  const copyText = (text: string, which: 'id' | 'details') => {
+    navigator.clipboard.writeText(text);
+    setCopied(which);
+    setTimeout(() => setCopied(null), 2000);
+  };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto animate-in fade-in">
-      <div className="bg-white max-w-xl w-full rounded-3xl shadow-2xl border border-slate-200 my-auto overflow-hidden flex flex-col max-h-[96vh]">
+    <div className="fixed inset-0 z-50 bg-ink/60 flex items-end sm:items-center justify-center sm:p-5">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="booking-title"
+        className="bg-paper w-full max-w-xl rounded-t-lg sm:rounded-lg shadow-xl flex flex-col max-h-[96vh]"
+      >
 
-        {/* Header */}
-        <div className="bg-gradient-to-r from-blue-700 to-blue-600 px-5 py-4 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 bg-white/20 rounded-xl flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h2 className="text-white font-black text-sm sm:text-base leading-tight">
-                Book a Consultation
-              </h2>
-              <p className="text-blue-100 text-[10px] sm:text-xs font-medium">
-                Dr. P. Sai Tejaswini, MPT (Neuro)
-              </p>
-            </div>
+        <div className="px-6 pt-5 pb-4 border-b border-line flex items-start justify-between gap-4 shrink-0">
+          <div>
+            <h2 id="booking-title" className="text-2xl text-ink">Book a consultation</h2>
+            <p className="text-sm text-ink-mute mt-0.5">With Dr. P. Sai Tejaswini · 45 minutes on Google Meet</p>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-white transition-colors"
-          >
-            <X className="w-4 h-4" />
+          <button type="button" onClick={onClose} aria-label="Close" className="p-2 -mr-2 text-ink-soft hover:text-ink">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Stepper */}
-        <div className="bg-slate-50 px-5 py-3 flex items-center gap-1 shrink-0 border-b border-slate-200">
-          {stepLabels.map((label, idx) => {
+        <ol className="px-6 py-3 flex gap-5 text-sm border-b border-line shrink-0">
+          {STEP_LABELS.map((label, idx) => {
             const n = idx + 1;
-            const isActive = step === n;
-            const isDone = step > n;
             return (
-              <React.Fragment key={n}>
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black transition-colors ${
-                    isDone ? 'bg-emerald-500 text-white' : isActive ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-500'
-                  }`}>
-                    {isDone ? <Check className="w-3 h-3" /> : n}
-                  </div>
-                  <span className={`text-[11px] font-bold hidden sm:block ${isActive ? 'text-blue-700' : isDone ? 'text-emerald-600' : 'text-slate-400'}`}>
-                    {label}
-                  </span>
-                </div>
-                {idx < stepLabels.length - 1 && (
-                  <ChevronRight className="w-3.5 h-3.5 text-slate-300 shrink-0" />
-                )}
-              </React.Fragment>
+              <li
+                key={label}
+                aria-current={step === n ? 'step' : undefined}
+                className={step === n ? 'text-ink font-semibold' : step > n ? 'text-primary' : 'text-ink-mute'}
+              >
+                {n}. {label}
+              </li>
             );
           })}
-        </div>
+        </ol>
 
-        {/* Scrollable content */}
-        <div className="overflow-y-auto flex-1 px-5 py-5">
+        <div className="overflow-y-auto flex-1 px-6 py-6">
 
-          {/* ── STEP 1: Date & Slot ── */}
           {step === 1 && (
-            <div className="space-y-5 animate-in slide-in-from-right-4">
-              {/* Date picker */}
+            <div className="space-y-6">
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-black text-slate-700 mb-2 uppercase tracking-wide">
-                  <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                  Select Date
-                </label>
+                <label htmlFor="booking-date" className={labelClass}>Date</label>
                 <input
+                  id="booking-date"
                   type="date"
                   value={selectedDate}
                   min={getTodayDateString()}
                   onChange={e => setSelectedDate(e.target.value)}
-                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  className={inputClass}
                 />
               </div>
 
-              {/* Time slots */}
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-black text-slate-700 mb-2 uppercase tracking-wide">
-                  <Clock className="w-3.5 h-3.5 text-blue-600" />
-                  Available Slots
-                </label>
-
+                <p className={labelClass}>Time</p>
                 {loadingSlots ? (
-                  <div className="flex items-center justify-center py-10 gap-2 text-slate-400 text-sm">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Loading slots…</span>
-                  </div>
+                  <p className="flex items-center gap-2 py-8 text-ink-mute">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Loading times…
+                  </p>
                 ) : visibleSlots.length === 0 ? (
-                  <div className="text-center py-10 text-slate-500 text-sm">
-                    No slots available for this date. Please choose another day.
-                  </div>
+                  <p className="py-8 text-ink-soft">No times left on this date. Choose another day.</p>
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {visibleSlots.map(slot => (
@@ -355,18 +312,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         type="button"
                         disabled={!slot.isAvailable}
                         onClick={() => setSelectedSlot(slot.timeString)}
-                        className={`text-xs font-bold py-2.5 px-2 rounded-xl border-2 transition-all text-center ${
+                        aria-pressed={selectedSlot === slot.timeString}
+                        className={`text-sm py-2.5 px-2 rounded-md border transition-colors ${
                           selectedSlot === slot.timeString
-                            ? 'bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200'
+                            ? 'bg-primary border-primary text-paper'
                             : slot.isAvailable
-                              ? 'bg-white border-slate-200 text-slate-700 hover:border-blue-400 hover:text-blue-700 cursor-pointer'
-                              : 'bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed line-through'
+                              ? 'bg-white border-line text-ink hover:border-primary'
+                              : 'bg-transparent border-line/60 text-ink-mute line-through cursor-not-allowed'
                         }`}
                       >
                         {slot.timeString}
-                        {!slot.isAvailable && (
-                          <span className="block text-[9px] font-normal mt-0.5">Booked</span>
-                        )}
                       </button>
                     ))}
                   </div>
@@ -375,50 +330,34 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             </div>
           )}
 
-          {/* ── STEP 2: Patient Details ── */}
           {step === 2 && (
-            <div className="space-y-4 animate-in slide-in-from-right-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-center gap-2 text-xs text-blue-800 font-semibold">
-                <Calendar className="w-3.5 h-3.5 shrink-0 text-blue-600" />
-                <span>{selectedDate} · {selectedSlot}</span>
-              </div>
+            <div className="space-y-4">
+              <p className="text-sm text-ink-soft">
+                {formatLongDate(selectedDate)}, {selectedSlot}
+              </p>
 
-              {/* Name */}
               <div>
-                <label className="block text-xs font-black text-slate-700 mb-1 uppercase tracking-wide">
-                  Full Name <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Ramesh Kumar"
-                  value={patientName}
-                  onChange={e => setPatientName(e.target.value)}
-                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
+                <label htmlFor="p-name" className={labelClass}>Full name</label>
+                <input id="p-name" type="text" autoComplete="name" value={patientName} onChange={e => setPatientName(e.target.value)} className={inputClass} />
               </div>
 
-              {/* Age & Gender */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-black text-slate-700 mb-1 uppercase tracking-wide">Age</label>
+                  <label htmlFor="p-age" className={labelClass}>Age <span className="text-ink-mute">(optional)</span></label>
                   <input
+                    id="p-age"
                     type="number"
-                    placeholder="e.g. 32"
                     min={1}
                     max={120}
                     value={patientAge}
                     onChange={e => setPatientAge(e.target.value ? Number(e.target.value) : '')}
-                    className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                    className={inputClass}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-black text-slate-700 mb-1 uppercase tracking-wide">Gender</label>
-                  <select
-                    value={patientGender}
-                    onChange={e => setPatientGender(e.target.value as any)}
-                    className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
-                  >
-                    <option value="">Select</option>
+                  <label htmlFor="p-gender" className={labelClass}>Gender <span className="text-ink-mute">(optional)</span></label>
+                  <select id="p-gender" value={patientGender} onChange={e => setPatientGender(e.target.value as any)} className={inputClass}>
+                    <option value="">—</option>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>
                     <option value="Other">Other</option>
@@ -426,223 +365,153 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
               </div>
 
-              {/* Phone */}
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-black text-slate-700 mb-1 uppercase tracking-wide">
-                  <Phone className="w-3.5 h-3.5 text-blue-600" />
-                  Mobile Number <span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center gap-2">
-                  <span className="shrink-0 bg-slate-100 border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-600 font-bold">+91</span>
+                <label htmlFor="p-phone" className={labelClass}>Mobile number</label>
+                <div className="flex gap-2">
+                  <span className="shrink-0 border border-line rounded-md px-3 py-2.5 text-ink-soft bg-paper-deep">+91</span>
                   <input
+                    id="p-phone"
                     type="tel"
-                    placeholder="9876543210"
+                    inputMode="numeric"
+                    autoComplete="tel-national"
                     maxLength={10}
                     value={patientPhone}
                     onChange={e => handlePhoneChange(e.target.value)}
-                    className={`flex-1 border rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:outline-none ${
-                      phoneError ? 'border-red-400 focus:ring-red-400' : 'border-slate-300 focus:ring-blue-500'
-                    }`}
+                    aria-invalid={Boolean(phoneError)}
+                    aria-describedby={phoneError ? 'p-phone-error' : undefined}
+                    className={`${inputClass} ${phoneError ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''}`}
                   />
                 </div>
                 {phoneError && (
-                  <p className="flex items-center gap-1 text-red-600 text-[11px] font-semibold mt-1">
-                    <AlertCircle className="w-3 h-3" />
-                    {phoneError}
-                  </p>
+                  <p id="p-phone-error" className="mt-1 text-sm text-red-700">{phoneError}</p>
                 )}
               </div>
 
-              {/* Email */}
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-black text-slate-700 mb-1 uppercase tracking-wide">
-                  <Mail className="w-3.5 h-3.5 text-blue-600" />
-                  Email <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={patientEmail}
-                  onChange={e => setPatientEmail(e.target.value)}
-                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
+                <label htmlFor="p-email" className={labelClass}>Email</label>
+                <input id="p-email" type="email" autoComplete="email" value={patientEmail} onChange={e => setPatientEmail(e.target.value)} className={inputClass} />
               </div>
 
-              {/* Address */}
               <div>
-                <label className="block text-xs font-black text-slate-700 mb-1 uppercase tracking-wide">Address</label>
-                <input
-                  type="text"
-                  placeholder="City, State"
-                  value={patientAddress}
-                  onChange={e => setPatientAddress(e.target.value)}
-                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                />
+                <label htmlFor="p-city" className={labelClass}>City <span className="text-ink-mute">(optional)</span></label>
+                <input id="p-city" type="text" autoComplete="address-level2" value={patientAddress} onChange={e => setPatientAddress(e.target.value)} className={inputClass} />
               </div>
 
-              {/* Problem */}
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-black text-slate-700 mb-1 uppercase tracking-wide">
-                  <PenLine className="w-3.5 h-3.5 text-blue-600" />
-                  Problem / Chief Complaint
-                </label>
+                <label htmlFor="p-problem" className={labelClass}>What would you like help with?</label>
                 <textarea
+                  id="p-problem"
                   rows={3}
-                  placeholder="Describe your symptoms or reason for consultation…"
+                  placeholder="Where it hurts, for how long, and anything that makes it better or worse."
                   value={problemDescription}
                   onChange={e => setProblemDescription(e.target.value)}
-                  className="w-full border border-slate-300 rounded-xl px-3 py-2.5 text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none resize-none"
+                  className={`${inputClass} resize-none`}
                 />
               </div>
 
-              {/* Medical Reports */}
               <div>
-                <label className="flex items-center gap-1.5 text-xs font-black text-slate-700 mb-2 uppercase tracking-wide">
-                  <FileText className="w-3.5 h-3.5 text-blue-600" />
-                  Medical Reports (optional)
-                </label>
+                <p className={labelClass}>Reports and scans <span className="text-ink-mute">(optional)</span></p>
                 {medicalReports.length > 0 && (
-                  <div className="space-y-1.5 mb-2">
+                  <ul className="mb-2 space-y-1.5">
                     {medicalReports.map((r, i) => (
-                      <div key={i} className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 text-xs">
-                        <FileText className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                        <span className="font-semibold text-emerald-900 truncate flex-1">{r.name}</span>
+                      <li key={`${r.name}-${i}`} className="flex items-center gap-2 text-sm bg-white border border-line rounded-md px-3 py-2">
+                        <FileText className="w-4 h-4 text-primary shrink-0" />
+                        <span className="truncate flex-1 text-ink">{r.name}</span>
                         <button
                           type="button"
                           onClick={() => setMedicalReports(prev => prev.filter((_, j) => j !== i))}
-                          className="text-slate-400 hover:text-red-500 ml-1 shrink-0"
+                          aria-label={`Remove ${r.name}`}
+                          className="text-ink-mute hover:text-ink"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-4 h-4" />
                         </button>
-                      </div>
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 )}
-                <label className="flex items-center gap-2 cursor-pointer bg-slate-50 border-2 border-dashed border-slate-300 hover:border-blue-400 rounded-xl px-4 py-3 transition-colors group">
-                  {uploadingReport ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-blue-500" />
-                  ) : (
-                    <Upload className="w-4 h-4 text-slate-400 group-hover:text-blue-500" />
-                  )}
-                  <span className="text-xs font-semibold text-slate-500 group-hover:text-blue-600">
-                    {uploadingReport ? 'Uploading…' : 'Attach a report (PDF, JPG, PNG)'}
-                  </span>
-                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="hidden" onChange={handleFileUpload} />
+                <label className="flex items-center gap-2 cursor-pointer border border-dashed border-line hover:border-primary rounded-md px-4 py-3 text-sm text-ink-soft">
+                  {uploadingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                  {uploadingReport ? 'Uploading…' : 'Attach a PDF, JPG or PNG'}
+                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" onChange={handleFileUpload} />
                 </label>
               </div>
 
               {errorMsg && (
-                <div className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-xs font-semibold">
-                  <AlertCircle className="w-4 h-4 shrink-0" />
+                <p role="alert" className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2.5">
+                  <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                   {errorMsg}
-                </div>
+                </p>
               )}
             </div>
           )}
 
-          {/* ── STEP 3: Confirmed ── */}
           {step === 3 && confirmedAppointment && (() => {
             const meetLink = confirmedAppointment.meetingLink || '';
-            const waMsg = encodeURIComponent(
-              `Hi! I've booked a physiotherapy consultation.\n\nBooking ID: ${confirmedAppointment.id}\nDate: ${confirmedAppointment.date}\nSlot: ${confirmedAppointment.timeSlot}\nDoctor: Dr. P. Sai Tejaswini\n\nMeet Link: ${meetLink}`
-            );
-            const waUrl = `https://wa.me/?text=${waMsg}`;
-
-            const copyDetails = () => {
-              navigator.clipboard.writeText(
-                `Booking ID: ${confirmedAppointment.id}\nDate: ${confirmedAppointment.date}\nSlot: ${confirmedAppointment.timeSlot}\nMeet: ${meetLink}`
-              );
-              setCopiedMsg(true);
-              setTimeout(() => setCopiedMsg(false), 2500);
-            };
+            const details =
+              `Booking ID: ${confirmedAppointment.id}\n` +
+              `Date: ${formatLongDate(confirmedAppointment.date)}\n` +
+              `Time: ${confirmedAppointment.timeSlot}\n` +
+              `With: Dr. P. Sai Tejaswini` +
+              (meetLink ? `\nGoogle Meet: ${meetLink}` : '');
+            const waUrl = `https://wa.me/?text=${encodeURIComponent(details)}`;
 
             return (
-              <div className="space-y-4 animate-in zoom-in-95 text-left py-1">
-                {/* Success banner */}
-                <div className="text-center space-y-2 pb-3 border-b border-slate-100">
-                  <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-sm">
-                    <CheckCircle2 className="w-8 h-8" />
-                  </div>
-                  <h3 className="text-2xl font-black text-slate-900">Booking Confirmed!</h3>
-                  <p className="text-xs font-semibold text-emerald-700">
-                    Online Video Consultation with Dr. P. Sai Tejaswini, MPT (Neuro)
-                  </p>
-                </div>
+              <div>
+                <CheckCircle2 className="w-9 h-9 text-primary" />
+                <h3 className="mt-3 text-2xl text-ink">Your consultation is booked</h3>
+                <p className="mt-1 text-ink-soft">Keep your booking ID. You'll need it to track or change the booking.</p>
 
-                {/* Booking ID card */}
-                <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-900 text-white p-4 rounded-2xl shadow-lg border border-blue-800 space-y-2">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-cyan-300 block">
-                    Booking Reference ID
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl font-mono font-black text-white tracking-wider">
-                      {confirmedAppointment.id}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(confirmedAppointment.id);
-                        setCopiedMsg(true);
-                        setTimeout(() => setCopiedMsg(false), 2000);
-                      }}
-                      className="bg-white/10 hover:bg-white/20 text-cyan-200 text-xs px-2.5 py-1 rounded-lg transition-colors flex items-center gap-1"
-                    >
-                      {copiedMsg ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                      {copiedMsg ? 'Copied!' : 'Copy'}
-                    </button>
+                <dl className="mt-6 border-y border-line divide-y divide-line">
+                  <div className="py-3 flex items-center justify-between gap-4">
+                    <dt className="text-sm text-ink-mute">Booking ID</dt>
+                    <dd className="flex items-center gap-3">
+                      <span className="font-mono text-ink">{confirmedAppointment.id}</span>
+                      <button
+                        type="button"
+                        onClick={() => copyText(confirmedAppointment.id, 'id')}
+                        className="text-sm text-primary flex items-center gap-1"
+                      >
+                        {copied === 'id' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                        {copied === 'id' ? 'Copied' : 'Copy'}
+                      </button>
+                    </dd>
                   </div>
-                  <div className="text-xs text-cyan-200 font-medium">
-                    {confirmedAppointment.date} · {confirmedAppointment.timeSlot}
+                  <div className="py-3 flex justify-between gap-4">
+                    <dt className="text-sm text-ink-mute">Date</dt>
+                    <dd className="text-ink text-right">{formatLongDate(confirmedAppointment.date)}</dd>
                   </div>
-                </div>
+                  <div className="py-3 flex justify-between gap-4">
+                    <dt className="text-sm text-ink-mute">Time</dt>
+                    <dd className="text-ink">{confirmedAppointment.timeSlot}</dd>
+                  </div>
+                </dl>
 
-                {/* Meet link */}
                 {meetLink && (
-                  <div className="bg-blue-50 border-2 border-blue-300 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-200">
-                        <Video className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-extrabold text-blue-950 text-sm">Google Meet Video Consultation</h4>
-                        <p className="text-xs text-blue-900 font-medium mt-0.5 leading-relaxed">
-                          Join 5 minutes before your scheduled slot.
-                        </p>
-                      </div>
-                    </div>
+                  <div className="mt-6">
                     <a
                       href={meetLink}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm py-3 px-4 rounded-xl shadow-md shadow-blue-200 transition-all"
+                      className="inline-flex items-center gap-2 bg-primary hover:bg-primary-deep text-paper font-semibold px-5 py-2.5 rounded-md transition-colors"
                     >
                       <Video className="w-4 h-4" />
-                      Join Consultation Room
+                      Open the consultation link
                       <ExternalLink className="w-3.5 h-3.5 opacity-80" />
                     </a>
+                    <p className="mt-2 text-sm text-ink-mute">Join five minutes before your time.</p>
                   </div>
                 )}
 
-                {/* Share & copy */}
-                <div className="grid grid-cols-2 gap-2">
-                  <a
-                    href={waUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs py-3 px-3 rounded-xl transition-all"
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-                    </svg>
-                    Share on WhatsApp
+                <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                  <a href={waUrl} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold underline underline-offset-4">
+                    Send details to WhatsApp
                   </a>
                   <button
                     type="button"
-                    onClick={copyDetails}
-                    className="flex items-center justify-center gap-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-3 px-3 rounded-xl transition-all"
+                    onClick={() => copyText(details, 'details')}
+                    className="text-primary font-semibold underline underline-offset-4"
                   >
-                    {copiedMsg ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-500" />}
-                    {copiedMsg ? 'Copied!' : 'Copy Details'}
+                    {copied === 'details' ? 'Details copied' : 'Copy all details'}
                   </button>
                 </div>
               </div>
@@ -651,19 +520,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
         </div>
 
-        {/* Footer navigation */}
-        <div className="bg-slate-50 px-5 py-4 border-t border-slate-200 flex items-center justify-between shrink-0">
+        <div className="px-6 py-4 border-t border-line flex items-center justify-between shrink-0">
           {step === 2 ? (
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-slate-900 px-3 py-2 rounded-xl hover:bg-slate-200 transition-colors"
+              className="flex items-center gap-1.5 text-sm text-ink-soft hover:text-ink"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
             </button>
           ) : (
-            <div />
+            <span />
           )}
 
           {step === 1 && (
@@ -671,31 +539,21 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               type="button"
               disabled={!selectedSlot}
               onClick={() => setStep(2)}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md shadow-blue-200 transition-all ml-auto cursor-pointer"
+              className="bg-accent hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed text-ink font-semibold px-5 py-2.5 rounded-md transition-colors"
             >
-              Next: Your Details
-              <ChevronRight className="w-4 h-4" />
+              Continue
             </button>
           )}
 
           {step === 2 && (
             <button
               type="button"
-              disabled={submitting || !patientName.trim() || !patientPhone.trim() || !patientEmail.trim() || !!phoneError}
+              disabled={submitting || !patientName.trim() || !patientPhone || !patientEmail.trim() || Boolean(phoneError)}
               onClick={handleSubmitBooking}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl shadow-md shadow-blue-200 transition-all ml-auto cursor-pointer"
+              className="flex items-center gap-2 bg-accent hover:bg-accent-deep disabled:opacity-50 disabled:cursor-not-allowed text-ink font-semibold px-5 py-2.5 rounded-md transition-colors"
             >
-              {submitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Confirming…
-                </>
-              ) : (
-                <>
-                  Confirm Booking
-                  <CheckCircle2 className="w-4 h-4" />
-                </>
-              )}
+              {submitting && <Loader2 className="w-4 h-4 animate-spin" />}
+              {submitting ? 'Booking…' : 'Confirm booking'}
             </button>
           )}
 
@@ -703,9 +561,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs sm:text-sm px-6 py-2.5 rounded-xl transition-all ml-auto cursor-pointer"
+              className="bg-ink hover:bg-ink/90 text-paper font-semibold px-5 py-2.5 rounded-md transition-colors"
             >
-              Done &amp; Close
+              Done
             </button>
           )}
         </div>

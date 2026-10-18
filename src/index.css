@@ -1,1 +1,64 @@
 @import "tailwindcss";
+
+@theme {
+  --font-serif: "Libre Baskerville", Georgia, "Times New Roman", serif;
+  --font-sans: "Nunito Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Taken from the clinic logo: navy wordmark, royal blue figure, cyan spine, aqua ring */
+  --color-paper: #f5f8f9;
+  --color-paper-deep: #e7eff2;
+  --color-ink: #14233a;
+  --color-ink-soft: #45566b;
+  --color-ink-mute: #74849a;
+  --color-line: #d3dee3;
+  --color-primary: #0048a8;
+  --color-primary-deep: #003078;
+  --color-primary-wash: #e1f1f4;
+  --color-accent: #10a9cc;
+  --color-accent-deep: #0b92b2;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-paper);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-serif);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+}
+
+/* Signature: a resistance-band stripe that opens a section */
+@utility band {
+  display: block;
+  width: 3rem;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(to right, var(--color-primary-deep) 0 66%, var(--color-accent) 66% 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -22,8 +22,8 @@ export const INITIAL_DOCTOR: Doctor = {
   qualification: 'MPT (Neurology), BPT, MIAP, Certified Bobath, Taping & PNF Practitioner',
   specialization: 'Comprehensive Physiotherapy Care (Neurological, Orthopedic, Sports, Post-Op, Women’s Health, Cardiology & Pulmonology)',
   experienceYears: 4,
-  bio: 'Dr. P. Sai Tejaswini is a highly respected Physiotherapist (MPT Neuro, MIAP) with 4 years of clinical excellence providing comprehensive, evidence-based physiotherapy care across specialized physical conditions—including neurological recovery, orthopaedic joint & spine pain, post-surgical rehabilitation, sports injuries, and women’s health. She provides personalized, evidence-based rehabilitation with all consultation and physical therapy sessions offered with transparent patient care.',
-  avatarUrl: 'https://images.unsplash.com/photo-1594824813624-912f7a0ce733?auto=format&fit=crop&q=80&w=800',
+  bio: "Dr. P. Sai Tejaswini is a physiotherapist with a master's degree in neurological physiotherapy (MPT Neuro) and four years of clinical practice. She is a member of the Indian Association of Physiotherapists.\n\nHer work covers neurological recovery, back, neck and joint pain, rehabilitation after surgery, sports injuries and women's health. Each plan starts from assessment: a full history, a look at how you move on camera, a reading of your scans, and an exercise programme built around what she finds.",
+  avatarUrl: '',
   consultationFee: 1,
   availableDays: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
   workingHours: '09:30 AM - 08:00 PM'
@@ -199,14 +199,8 @@ export const INITIAL_FAQS: FAQItem[] = [
   {
     id: 'faq-1',
     category: 'Online Consultation',
-    question: 'How does an Online Physiotherapy Consultation work?',
-    answer: 'Once you book an online consultation, you receive a Google Meet/Zoom link along with meeting credentials. During your video call, Dr. P. Sai Tejaswini conducts a comprehensive movement and posture assessment, reviews your medical scans/reports, and prescribes a personalized home exercise regimen with a downloadable PDF prescription.'
-  },
-  {
-    id: 'faq-2',
-    category: 'Booking & Payment',
-    question: 'What payment modes are accepted and is instant confirmation provided?',
-    answer: 'We accept Credit/Debit cards, UPI (Google Pay, PhonePe, Paytm), NetBanking via Razorpay. Upon successful payment, your appointment is instantly confirmed with an automated email receipt, invoice, and Google Meet/Zoom link.'
+    question: 'How does an online consultation work?',
+    answer: 'After you book, you receive a Google Meet link for your slot. On the call, Dr. Tejaswini takes your history, assesses your movement and posture on camera, goes through any scans you have shared, and gives you a home exercise programme.'
   },
   {
     id: 'faq-3',
@@ -217,8 +211,8 @@ export const INITIAL_FAQS: FAQItem[] = [
   {
     id: 'faq-4',
     category: 'General',
-    question: 'Can I upload my MRI scans or X-ray reports before consultation?',
-    answer: 'Yes! During the appointment booking process or via your Patient Dashboard, you can securely upload PDF or JPG medical reports so Dr. Tejaswini can review them prior to your session.'
+    question: 'Can I share my MRI or X-ray reports before the consultation?',
+    answer: 'Yes. Attach PDF or JPG reports while booking, or later from Track booking, so Dr. Tejaswini can read them before your session.'
   }
 ];
 

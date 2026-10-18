@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { HelpCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Minus } from 'lucide-react';
 import { FAQItem } from '../types';
 
 interface FAQSectionProps {
@@ -10,53 +10,40 @@ export const FAQSection: React.FC<FAQSectionProps> = ({ faqs }) => {
   const [openId, setOpenId] = useState<string>(faqs[0]?.id || '');
 
   return (
-    <section id="faqs" className="py-20 relative z-10">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
-        
-        <div className="text-center mb-14 space-y-3">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-50/80 text-blue-700 text-xs font-bold uppercase tracking-wider border border-blue-100/80 backdrop-blur-sm shadow-sm">
-            <HelpCircle className="w-4 h-4 text-blue-600" />
-            <span>Frequently Asked Questions</span>
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight">
-            Got Questions? We Have Answers.
-          </h2>
-          <p className="text-slate-600 text-base">
-            Everything you need to know about online physiotherapy consultations, video sessions, report reviews, and Razorpay payments.
-          </p>
+    <section id="faqs" className="py-16 sm:py-24 scroll-mt-16">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="lg:col-span-4">
+          <span className="band mb-5" />
+          <h2 className="text-3xl sm:text-4xl text-ink">Questions patients ask</h2>
         </div>
 
-        {/* Accordions */}
-        <div className="space-y-4">
-          {faqs.map((faq) => {
+        <div className="lg:col-span-8 border-t border-line">
+          {faqs.map(faq => {
             const isOpen = openId === faq.id;
+            const panelId = `faq-panel-${faq.id}`;
             return (
-              <div
-                key={faq.id}
-                className="bg-white/60 backdrop-blur-xl border border-white/60 rounded-2xl overflow-hidden shadow-sm transition-all"
-              >
+              <div key={faq.id} className="border-b border-line">
                 <button
+                  type="button"
                   onClick={() => setOpenId(isOpen ? '' : faq.id)}
-                  className="w-full text-left p-5 bg-white/40 hover:bg-white/80 backdrop-blur-md flex items-center justify-between font-bold text-slate-900 text-sm sm:text-base transition-colors"
+                  aria-expanded={isOpen}
+                  aria-controls={panelId}
+                  className="w-full text-left py-5 flex items-start justify-between gap-6 text-ink"
                 >
-                  <span className="pr-4">{faq.question}</span>
-                  {isOpen ? (
-                    <ChevronUp className="w-5 h-5 text-blue-600 shrink-0" />
-                  ) : (
-                    <ChevronDown className="w-5 h-5 text-slate-400 shrink-0" />
-                  )}
+                  <span className="text-[17px] font-semibold">{faq.question}</span>
+                  {isOpen
+                    ? <Minus className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                    : <Plus className="w-5 h-5 text-ink-mute shrink-0 mt-0.5" />}
                 </button>
-
                 {isOpen && (
-                  <div className="p-5 bg-white/70 backdrop-blur-md text-slate-700 text-sm leading-relaxed border-t border-white/60 animate-in fade-in">
+                  <p id={panelId} className="pb-6 pr-10 text-ink-soft leading-relaxed">
                     {faq.answer}
-                  </div>
+                  </p>
                 )}
               </div>
             );
           })}
         </div>
-
       </div>
     </section>
   );
