@@ -16,7 +16,8 @@ export default defineConfig(() => {
       // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // data/store.json is rewritten on every booking; watching it reloads the page mid-flow.
+      watch: process.env.DISABLE_HMR === 'true' ? null : { ignored: ['**/data/**'] },
     },
   };
 });

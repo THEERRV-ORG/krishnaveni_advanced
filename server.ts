@@ -412,13 +412,9 @@ function resolveConsultationMeetingLink(appointmentId?: string): string {
 app.post('/api/appointments', (req, res) => {
   const body = req.body;
 
-  // Verify that payment fee is recorded (test fee ₹1 or regular fee)
-  const amountPaid = Number(body.amountPaid);
-  if (!amountPaid || amountPaid < 1) {
-    return res.status(400).json({ error: 'Payment required: Consultation fee must be paid before confirming booking slot.' });
-  }
-
-  const paymentMethod = body.paymentMethod || 'UPI Payment';
+  // V1: Payment validation disabled — bookings confirmed directly
+  const amountPaid = Number(body.amountPaid) || 0;
+  const paymentMethod = body.paymentMethod || 'Pending';
   const isUpi = paymentMethod.includes('UPI');
   const upiUtr = (body.upiUtr || '').trim();
   const paymentRef = (body.razorpayPaymentId || '').trim();
@@ -507,12 +503,10 @@ app.post('/api/appointments', (req, res) => {
   });
 
   saveStore();
-  
-  // Automated email & WhatsApp confirmation dispatched directly from clinic to patient
-  Promise.allSettled([
-    sendBookingConfirmationEmail(newAppointment),
-    sendBookingConfirmationWhatsApp(newAppointment)
-  ]).catch(e => console.error('Notification dispatch error:', e));
+
+  // V1: Email & WhatsApp notifications disabled — will be enabled in a future version
+  // sendBookingConfirmationEmail(newAppointment);
+  // sendBookingConfirmationWhatsApp(newAppointment);
 
   res.status(201).json(newAppointment);
 });
@@ -546,8 +540,12 @@ app.put('/api/appointments/:id/status', (req, res) => {
   res.json(apt);
 });
 
-// Automated Email Dispatcher for Booking Confirmation (from Clinic Email to Patient Email)
-async function sendBookingConfirmationEmail(appointment: any) {
+// V1_DISABLED: Email integration commented out for Version 1
+async function sendBookingConfirmationEmail(_appointment: any) {
+  return { sent: false, method: 'DISABLED_V1' };
+}
+/* V1_DISABLED_EMAIL_START
+async function sendBookingConfirmationEmail__disabled(appointment: any) {
   const patientEmail = appointment.patientEmail;
   if (!patientEmail) return { sent: false, reason: 'No email provided' };
 
@@ -768,7 +766,9 @@ async function sendBookingConfirmationEmail(appointment: any) {
 
   return emailResult;
 }
+V1_DISABLED_EMAIL_END */
 
+/* V1_DISABLED_WHATSAPP_START
 interface MetaWhatsAppSendResult {
   success: boolean;
   sent: boolean;
@@ -781,7 +781,7 @@ interface MetaWhatsAppSendResult {
 }
 
 // Dedicated Meta WhatsApp Cloud API Dispatcher with Template support and rich link previews
-async function sendMetaWhatsAppMessage(
+async function sendMetaWhatsAppMessage__disabled(
   recipientPhone: string,
   appointment: any,
   waToken: string,
@@ -939,8 +939,14 @@ Meeting Passcode: ${passcode}
   }
 }
 
-// Automated WhatsApp Dispatcher (from Clinic WhatsApp +91 94906 05809 to Patient WhatsApp)
-async function sendBookingConfirmationWhatsApp(appointment: any) {
+V1_DISABLED_WHATSAPP_END */
+
+// V1_DISABLED: WhatsApp integration commented out for Version 1
+async function sendBookingConfirmationWhatsApp(_appointment: any) {
+  return { sent: false, method: 'DISABLED_V1' };
+}
+/* V1_DISABLED_WA_BODY_START
+async function sendBookingConfirmationWhatsApp__disabled(appointment: any) {
   const patientPhone = appointment.patientPhone;
   if (!patientPhone) return { sent: false, reason: 'No phone number provided' };
 
@@ -1127,9 +1133,11 @@ To deliver real messages directly to patient mobile numbers (+${recipientPhone})
 
   return waResult;
 }
+V1_DISABLED_WA_BODY_END */
 
+/* V1_DISABLED_RAZORPAY_START
 // Payment Session Tracker for Real-time UPI & Gateway Polling
-export type BookingPaymentStatus = 
+export type BookingPaymentStatus =
   | 'PAYMENT_PENDING'
   | 'PAYMENT_PROCESSING'
   | 'PAYMENT_SUCCESS'
@@ -1681,7 +1689,9 @@ app.post('/api/payments/session/:orderId/verify-utr', async (req, res) => {
     appointment
   });
 });
+V1_DISABLED_RAZORPAY_END */
 
+/* V1_DISABLED_RAZORPAY_CONFIG_START
 // Helper to get active Razorpay Payment Gateway credentials
 function getRazorpayConfig() {
   const keyId = process.env.RAZORPAY_KEY_ID || (store.clinicInfo as any)?.razorpayKeyId || '';
@@ -1790,7 +1800,9 @@ app.post('/api/admin/gateway-settings', (req, res) => {
     )
   });
 });
+V1_DISABLED_RAZORPAY_CONFIG_END */
 
+/* V1_DISABLED_RAZORPAY_API_START
 // Create Order (Official Razorpay Gateway + Internal Session)
 app.post('/api/payments/razorpay/create-order', async (req, res) => {
   const { amount, serviceName, patientName, patientPhone, patientEmail, orderSessionId, ...otherDetails } = req.body;
@@ -2457,6 +2469,7 @@ app.all(['/api/payments/upi-callback', '/api/payments/upi-callback/:orderId'], a
 
   res.redirect(`/?confirmedOrder=${session.orderId}`);
 });
+V1_DISABLED_RAZORPAY_API_END */
 
 // Admin Notification Settings & Logs
 app.get('/api/admin/notification-settings', (_req, res) => {
@@ -2513,6 +2526,7 @@ app.post('/api/admin/notification-settings', (req, res) => {
   res.json({ success: true, message: 'Notification gateway settings updated successfully' });
 });
 
+/* V1_DISABLED_WA_ENDPOINTS_START
 // Live Test WhatsApp Dispatcher via Meta WhatsApp Cloud API
 app.post('/api/admin/test-whatsapp', async (req, res) => {
   const clinic = (store.clinicInfo as any) || {};
@@ -2639,7 +2653,9 @@ app.post('/api/whatsapp/webhook', (req, res) => {
   }
   res.sendStatus(404);
 });
+V1_DISABLED_WA_ENDPOINTS_END */
 
+/* V1_DISABLED_EMAIL_ENDPOINTS_START
 // Send Test Email using configured Gmail App Password / SMTP
 app.post('/api/admin/test-email', async (req, res) => {
   const targetEmail = req.body?.email || 'kbharathkumar654@gmail.com';
@@ -2716,6 +2732,7 @@ app.post('/api/appointments/:id/resend-notifications', async (req, res) => {
     whatsapp: waRes
   });
 });
+V1_DISABLED_EMAIL_ENDPOINTS_END */
 
 // Payment History & Invoices
 app.get('/api/payments/history', (_req, res) => {
