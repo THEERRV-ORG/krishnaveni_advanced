@@ -85,6 +85,21 @@ export default function App() {
     loadBackendData();
   }, []);
 
+  // The admin dashboard has no public link; staff open it at /#admin.
+  useEffect(() => {
+    const syncAdminFromHash = () => setAdminDashboardOpen(window.location.hash === '#admin');
+    syncAdminFromHash();
+    window.addEventListener('hashchange', syncAdminFromHash);
+    return () => window.removeEventListener('hashchange', syncAdminFromHash);
+  }, []);
+
+  const closeAdminDashboard = () => {
+    setAdminDashboardOpen(false);
+    if (window.location.hash === '#admin') {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
+  };
+
   const handleOpenBooking = (
     type: ConsultationType = 'Online Consultation', 
     service: Service | null = null,
@@ -132,7 +147,6 @@ export default function App() {
         clinicInfo={clinicInfo}
         onOpenBooking={() => handleOpenBooking('Online Consultation')}
         onOpenPatientPortal={() => setPatientDashboardOpen(true)}
-        onOpenAdminPortal={() => setAdminDashboardOpen(true)}
       />
 
       {/* Mobile action bar */}
@@ -174,7 +188,7 @@ export default function App() {
 
       <AdminDashboard
         isOpen={adminDashboardOpen}
-        onClose={() => setAdminDashboardOpen(false)}
+        onClose={closeAdminDashboard}
         services={services}
         onRefreshServices={() => {}}
         doctor={doctor}

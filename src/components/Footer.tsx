@@ -5,7 +5,6 @@ interface FooterProps {
   clinicInfo: ClinicInfo;
   onOpenBooking: () => void;
   onOpenPatientPortal: () => void;
-  onOpenAdminPortal: () => void;
 }
 
 const LINKS = [
@@ -20,7 +19,6 @@ export const Footer: React.FC<FooterProps> = ({
   clinicInfo,
   onOpenBooking,
   onOpenPatientPortal,
-  onOpenAdminPortal,
 }) => {
   return (
     <footer className="bg-primary-deep text-paper/80 pt-14 pb-24 md:pb-10">
@@ -67,12 +65,9 @@ export const Footer: React.FC<FooterProps> = ({
 
         </div>
 
-        <div className="mt-12 pt-6 border-t border-paper/15 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-paper/50">
-          <p>© {new Date().getFullYear()} {clinicInfo.name}</p>
-          <button type="button" onClick={onOpenAdminPortal} className="hover:text-paper/80">
-            Clinic login
-          </button>
-        </div>
+        <p className="mt-12 pt-6 border-t border-paper/15 text-sm text-paper/50">
+          © {new Date().getFullYear()} {clinicInfo.name}
+        </p>
       </div>
     </footer>
   );
