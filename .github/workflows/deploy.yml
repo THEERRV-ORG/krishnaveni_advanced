@@ -1,0 +1,144 @@
+name: CI/CD Pipeline - Build & Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  # ==========================================
+  # STAGE 1: Lint, Test & Compile Verification
+  # ==========================================
+  build-and-test:
+    name: Build & Verify
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run TypeScript & Code Linting
+        run: npm run lint
+
+      - name: Build Application (Frontend + Server)
+        run: npm run build
+
+  # ==========================================
+  # STAGE 2: Build & Push Docker Container Image
+  # ==========================================
+  docker-build-push:
+    name: Build & Push Docker Image
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # OPTION A: Docker Hub Login (Uncomment if using Docker Hub)
+      # - name: Log in to Docker Hub
+      #   uses: docker/login-action@v3
+      #   with:
+      #     username: ${{ secrets.DOCKER_USERNAME }}
+      #     password: ${{ secrets.DOCKER_PASSWORD }}
+
+      # OPTION B: GitHub Container Registry (GHCR) Login
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+
+  # ==========================================
+  # STAGE 3: Deploy to Production Server (VM or Kubernetes)
+  # ==========================================
+  deploy-to-server:
+    name: Deploy to Server / Kubernetes
+    needs: docker-build-push
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+
+    steps:
+      # ----------------------------------------------------
+      # DEPLOY TARGET 1: Deploy to Remote Linux VM via SSH
+      # (Requires secrets: SERVER_HOST, SERVER_USER, SSH_PRIVATE_KEY)
+      # ----------------------------------------------------
+      - name: Deploy to Remote VM via SSH
+        if: "${{ env.DEPLOY_TARGET == 'vm' || secrets.SERVER_HOST != '' }}"
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SERVER_PORT || 22 }}
+          script: |
+            echo "Deploying Krishnaveni Physiotherapy app on server..."
+            
+            # Pull latest container image
+            docker pull ghcr.io/${{ github.repository }}:latest
+            
+            # Stop and remove old container if running
+            docker stop physio-app || true
+            docker rm physio-app || true
+            
+            # Run updated container with environment credentials
+            docker run -d \
+              --name physio-app \
+              --restart always \
+              -p 3000:3000 \
+              -e NODE_ENV=production \
+              -e DATABASE_URL="${{ secrets.DATABASE_URL }}" \
+              -e ADMIN_EMAIL="${{ secrets.ADMIN_EMAIL }}" \
+              -e ADMIN_PASSWORD="${{ secrets.ADMIN_PASSWORD }}" \
+              -e JWT_SECRET="${{ secrets.JWT_SECRET }}" \
+              -e RAZORPAY_KEY_ID="${{ secrets.RAZORPAY_KEY_ID }}" \
+              -e RAZORPAY_KEY_SECRET="${{ secrets.RAZORPAY_KEY_SECRET }}" \
+              ghcr.io/${{ github.repository }}:latest
+            
+            echo "Deployment completed successfully!"
+
+      # ----------------------------------------------------
+      # DEPLOY TARGET 2: Deploy to Kubernetes Cluster (K8s)
+      # (Requires secrets: KUBE_CONFIG)
+      # ----------------------------------------------------
+      - name: Deploy to Kubernetes Cluster
+        if: "${{ secrets.KUBE_CONFIG != '' }}"
+        uses: azure/k8s-set-context@v3
+        with:
+          method: kubeconfig
+          kubeconfig: ${{ secrets.KUBE_CONFIG }}
+
+      - name: Rollout Restart in Kubernetes
+        if: "${{ secrets.KUBE_CONFIG != '' }}"
+        run: |
+          kubectl set image deployment/physio-app physio-app=ghcr.io/${{ github.repository }}:${{ github.sha }}
+          kubectl rollout status deployment/physio-app

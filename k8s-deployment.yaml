@@ -1,0 +1,107 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: physio-app
+  labels:
+    app: physio-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: physio-app
+  template:
+    metadata:
+      labels:
+        app: physio-app
+    spec:
+      containers:
+        - name: physio-app
+          image: ghcr.io/YOUR_GITHUB_USERNAME/YOUR_REPO_NAME:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: physio-secrets
+                  key: DATABASE_URL
+            - name: ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: physio-secrets
+                  key: ADMIN_EMAIL
+            - name: ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: physio-secrets
+                  key: ADMIN_PASSWORD
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: physio-secrets
+                  key: JWT_SECRET
+            - name: RAZORPAY_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: physio-secrets
+                  key: RAZORPAY_KEY_ID
+            - name: RAZORPAY_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: physio-secrets
+                  key: RAZORPAY_KEY_SECRET
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "512Mi"
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 15
+          volumeMounts:
+            - name: physio-data-volume
+              mountPath: /app/data
+      volumes:
+        - name: physio-data-volume
+          persistentVolumeClaim:
+            claimName: physio-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: physio-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: physio-service
+spec:
+  type: LoadBalancer # Or ClusterIP if using Ingress
+  selector:
+    app: physio-app
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
