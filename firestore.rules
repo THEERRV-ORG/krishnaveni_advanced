@@ -1,0 +1,144 @@
+rules_version = '2';
+
+// The website talks to Firestore directly from the browser, so these rules are the
+// only thing protecting the data. Deploy them before going live:
+//   npx firebase-tools@14 deploy --only firestore:rules --project YOUR_PROJECT_ID
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // An admin is a signed-in Google account with a document at admins/{email}.
+    // Create those documents by hand in the Firebase console.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && exists(/databases/$(database)/documents/admins/$(request.auth.token.email));
+    }
+
+    function maxPerSlot() {
+      return get(/databases/$(database)/documents/settings/schedule).data.maxPerSlot;
+    }
+
+    function isDate(value) {
+      return value is string && value.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$');
+    }
+
+    function shortString(value, max) {
+      return value is string && value.size() <= max;
+    }
+
+    // ---------- public site content: anyone reads, admins write ----------
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /services/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /testimonials/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /faqs/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    match /media/{docId} {
+      allow read: if true;
+      allow write: if isAdmin()
+        && request.resource.data.keys().hasOnly(['dataUrl', 'updatedAt'])
+        && request.resource.data.dataUrl is string
+        && request.resource.data.dataUrl.matches('^data:image/(jpeg|png|webp);base64,.*')
+        && request.resource.data.dataUrl.size() < 900000;
+    }
+
+    // Lets a signed-in user check whether they are an admin; nobody can grant themselves access.
+    match /admins/{email} {
+      allow get: if request.auth != null && request.auth.token.email == email;
+      allow list, write: if false;
+    }
+
+    // ---------- slot seats ----------
+    // One document per taken place in a time slot: {date}_{slotId}_{seat}. A seat can only be
+    // created once, which is what stops two patients taking the same place. Seats hold no
+    // patient data, so they are public; the booking site reads them to show free times.
+    match /slotHolds/{holdId} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(['date', 'slotId', 'seat', 'bookingHash'])
+        && request.resource.data.keys().hasAll(['date', 'slotId', 'seat', 'bookingHash'])
+        && isDate(request.resource.data.date)
+        && shortString(request.resource.data.slotId, 20)
+        && request.resource.data.seat is int
+        && request.resource.data.seat >= 1
+        && request.resource.data.seat <= maxPerSlot()
+        && holdId == request.resource.data.date + '_' + request.resource.data.slotId + '_' + string(request.resource.data.seat)
+        && request.resource.data.bookingHash is string
+        && request.resource.data.bookingHash.size() == 64;
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
+
+    // ---------- appointments ----------
+    match /appointments/{bookingId} {
+      // The random booking ID is the patient's key to their booking, so a single booking
+      // can be read by ID. Listing or searching bookings is admin-only.
+      allow get: if true;
+      allow list, delete: if isAdmin();
+
+      allow update: if isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'cancellationReason', 'meetingLink', 'holdId'])
+        && request.resource.data.status in ['Confirmed', 'Pending', 'Completed', 'Cancelled']
+        && shortString(request.resource.data.get('cancellationReason', ''), 300)
+        && request.resource.data.meetingLink is string
+        && request.resource.data.meetingLink.matches('^https://.*');
+
+      allow create: if validBooking(bookingId, request.resource.data);
+    }
+
+    function validBooking(bookingId, d) {
+      let hold = getAfter(/databases/$(database)/documents/slotHolds/$(d.holdId));
+      return bookingId.matches('^APT-[0-9]{4}-[A-HJ-NP-Z2-9]{6}$')
+        && d.keys().hasOnly([
+             'id', 'patientName', 'patientAge', 'patientGender', 'patientPhone', 'patientEmail',
+             'patientAddress', 'serviceId', 'serviceName', 'doctorName', 'consultationType',
+             'date', 'timeSlot', 'slotId', 'durationMinutes', 'status', 'problemDescription',
+             'medicalReports', 'amountPaid', 'paymentStatus', 'meetingLink', 'invoiceNumber',
+             'holdId', 'createdAt'])
+        && d.keys().hasAll([
+             'id', 'patientName', 'patientPhone', 'patientEmail', 'date', 'timeSlot', 'slotId',
+             'status', 'amountPaid', 'paymentStatus', 'meetingLink', 'holdId', 'createdAt'])
+        && d.id == bookingId
+        && d.status == 'Confirmed'
+        && d.amountPaid == 0
+        && d.paymentStatus == 'Pending'
+        && d.createdAt == request.time
+        && d.patientName is string && d.patientName.size() >= 2 && d.patientName.size() <= 80
+        && d.patientPhone is string && d.patientPhone.matches('^[6-9][0-9]{9}$')
+        && d.patientEmail is string && d.patientEmail.size() <= 120
+        && d.patientEmail.matches('^[^@ ]+@[^@ ]+[.][^@ ]{2,}$')
+        && d.patientEmail == d.patientEmail.lower()
+        && (!('patientAge' in d) || (d.patientAge is int && d.patientAge > 0 && d.patientAge < 120))
+        && (!('patientGender' in d) || d.patientGender in ['Male', 'Female', 'Other'])
+        && shortString(d.get('patientAddress', ''), 120)
+        && shortString(d.get('problemDescription', ''), 2000)
+        && shortString(d.get('serviceId', ''), 60)
+        && shortString(d.get('serviceName', ''), 120)
+        && shortString(d.get('doctorName', ''), 80)
+        && d.get('consultationType', 'Online Consultation') == 'Online Consultation'
+        && d.get('durationMinutes', 45) == 45
+        && d.get('medicalReports', []).size() == 0
+        && shortString(d.get('invoiceNumber', ''), 30)
+        && isDate(d.date)
+        && shortString(d.timeSlot, 40)
+        && shortString(d.slotId, 20)
+        && d.meetingLink is string && d.meetingLink.size() <= 500 && d.meetingLink.matches('^https://.*')
+        // The booking must take a seat created in the same write, for this date and slot.
+        && d.holdId is string
+        && existsAfter(/databases/$(database)/documents/slotHolds/$(d.holdId))
+        && hold.data.date == d.date
+        && hold.data.slotId == d.slotId
+        && hold.data.bookingHash == hashing.sha256(bookingId).toHexString().lower();
+    }
+  }
+}

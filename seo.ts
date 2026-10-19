@@ -50,7 +50,6 @@ interface HeadInput {
 function structuredData({ siteUrl, clinic, doctor, faqs }: HeadInput) {
   const clinicId = `${siteUrl}/#clinic`;
   const doctorId = `${siteUrl}/#doctor`;
-  const hasClinicPhoto = doctor.avatarUrl?.startsWith('/api/doctor-photo');
 
   return {
     '@context': 'https://schema.org',
@@ -91,7 +90,6 @@ function structuredData({ siteUrl, clinic, doctor, faqs }: HeadInput) {
         honorificSuffix: 'MPT (Neuro), MIAP',
         description: doctor.bio,
         worksFor: { '@id': clinicId },
-        ...(hasClinicPhoto ? { image: `${siteUrl}/api/doctor-photo` } : {}),
       },
       {
         '@type': 'FAQPage',

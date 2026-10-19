@@ -6,9 +6,9 @@ interface DoctorPortraitProps {
   className?: string;
 }
 
-// Only a photo uploaded by the clinic (served from /api/doctor-photo) is shown; never a stock image.
+// Only a photo uploaded by the clinic from the admin dashboard is shown; never a stock image.
 function hasClinicPhoto(doctor: Doctor): boolean {
-  return Boolean(doctor.avatarUrl && doctor.avatarUrl.startsWith('/api/doctor-photo'));
+  return Boolean(doctor.avatarUrl && doctor.avatarUrl.startsWith('data:image/'));
 }
 
 function initials(name: string): string {

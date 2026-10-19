@@ -1,10 +1,8 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   X,
-  Upload,
   CheckCircle2,
   Video,
-  FileText,
   ArrowLeft,
   Loader2,
   Copy,
@@ -13,6 +11,8 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Service, ConsultationType, TimeSlot, Appointment } from '../types';
+import { BookingError, createBooking, getTakenSeats, type SiteContent } from '../lib/data';
+import { whatsappLink } from '../utils/whatsapp';
 
 function getTodayDateString(): string {
   const now = new Date();
@@ -78,6 +78,7 @@ const inputClass =
 const labelClass = 'block text-sm text-ink-soft mb-1';
 
 interface BookingModalProps {
+  content: SiteContent;
   services?: Service[];
   preselectedService?: Service | null;
   initialType?: ConsultationType;
@@ -91,8 +92,8 @@ interface BookingModalProps {
 const STEP_LABELS = ['Date and time', 'Your details', 'Confirmed'];
 
 export const BookingModal: React.FC<BookingModalProps> = ({
+  content,
   preselectedService = null,
-  initialReports = [],
   initialProblemDescription = '',
   isOpen,
   onClose,
@@ -129,8 +130,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [patientEmail, setPatientEmail] = useState('');
   const [patientAddress, setPatientAddress] = useState('');
   const [problemDescription, setProblemDescription] = useState(initialProblemDescription || '');
-  const [medicalReports, setMedicalReports] = useState<{ name: string; url: string; uploadedAt: string }[]>(initialReports);
-  const [uploadingReport, setUploadingReport] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const [nameError, setNameError] = useState('');
@@ -161,7 +160,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setPatientEmail('');
     setPatientAddress('');
     setProblemDescription(initialProblemDescription || '');
-    setMedicalReports(initialReports && initialReports.length > 0 ? initialReports : []);
     setSubmitting(false);
     setConfirmedAppointment(null);
     setCopied(null);
@@ -170,49 +168,35 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
   useEffect(() => {
     if (!isOpen) return;
-    const fetchSlots = async () => {
+    let cancelled = false;
+    const loadSlots = async () => {
       setLoadingSlots(true);
       try {
-        const res = await fetch(`/api/slots?date=${selectedDate}`);
-        const data = await res.json();
-        setTimeSlots(data.slots || []);
+        const taken = await getTakenSeats(selectedDate);
+        if (cancelled) return;
+        setTimeSlots(content.schedule.timeSlots.map(slot => {
+          const bookedCount = taken.get(slot.id)?.size ?? 0;
+          return {
+            ...slot,
+            maxCapacity: content.schedule.maxPerSlot,
+            bookedCount,
+            isAvailable: slot.isAvailable && bookedCount < content.schedule.maxPerSlot,
+          };
+        }));
       } catch (err) {
-        console.error('Failed to fetch slots', err);
-        setTimeSlots([]);
+        console.error('Failed to load free times', err);
+        if (!cancelled) setTimeSlots([]);
       } finally {
-        setLoadingSlots(false);
+        if (!cancelled) setLoadingSlots(false);
       }
     };
-    fetchSlots();
-  }, [selectedDate, isOpen]);
+    loadSlots();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate, isOpen, content.schedule]);
 
   if (!isOpen) return null;
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setUploadingReport(true);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const res = await fetch('/api/upload', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: file.name, fileData: reader.result as string }),
-        });
-        const data = await res.json();
-        setMedicalReports(prev => [...prev, data]);
-      } catch {
-        setMedicalReports(prev => [
-          ...prev,
-          { name: file.name, url: URL.createObjectURL(file), uploadedAt: new Date().toISOString().split('T')[0] },
-        ]);
-      } finally {
-        setUploadingReport(false);
-      }
-    };
-    reader.readAsDataURL(file);
-  };
 
   const handlePhoneChange = (val: string) => {
     const digits = val.replace(/\D/g, '');
@@ -237,38 +221,33 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setErrorMsg(null);
     setSubmitting(true);
     try {
-      const res = await fetch('/api/appointments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
+      const slot = content.schedule.timeSlots.find(s => s.timeString === selectedSlot);
+      if (!slot) throw new BookingError('Choose one of the available times.');
+      const appointment = await createBooking(
+        {
           patientName: patientName.trim(),
           patientAge: patientAge ? Number(patientAge) : undefined,
           patientGender: patientGender || undefined,
           patientPhone: patientPhone.trim(),
           patientEmail: patientEmail.trim(),
-          patientAddress: patientAddress.trim() || 'N/A',
-          serviceId: preselectedService?.id || 'online-consult',
-          consultationType: 'Online Consultation',
-          date: selectedDate,
-          timeSlot: selectedSlot,
+          patientAddress: patientAddress.trim(),
           problemDescription: problemDescription.trim() || 'Online Physiotherapy Consultation',
-          medicalReports,
-          amountPaid: 0,
-          paymentMethod: 'Pending',
-        }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || 'The booking could not be saved. Try again, or contact us on WhatsApp.');
-      }
-
-      const appointment: Appointment = await res.json();
+          service: preselectedService,
+          date: selectedDate,
+          slot,
+        },
+        content,
+      );
       setConfirmedAppointment(appointment);
       setStep(3);
       onBookingComplete(appointment);
-    } catch (err: any) {
-      setErrorMsg(err.message || 'The booking could not be saved. Try again, or contact us on WhatsApp.');
+    } catch (err) {
+      console.error('Booking failed', err);
+      setErrorMsg(
+        err instanceof BookingError
+          ? err.message
+          : 'The booking could not be saved. Try again, or contact us on WhatsApp.',
+      );
     } finally {
       setSubmitting(false);
     }
@@ -463,32 +442,18 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 />
               </div>
 
-              <div>
-                <p className={labelClass}>Reports and scans <span className="text-ink-mute">(optional)</span></p>
-                {medicalReports.length > 0 && (
-                  <ul className="mb-2 space-y-1.5">
-                    {medicalReports.map((r, i) => (
-                      <li key={`${r.name}-${i}`} className="flex items-center gap-2 text-sm bg-white border border-line rounded-md px-3 py-2">
-                        <FileText className="w-4 h-4 text-primary shrink-0" />
-                        <span className="truncate flex-1 text-ink">{r.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => setMedicalReports(prev => prev.filter((_, j) => j !== i))}
-                          aria-label={`Remove ${r.name}`}
-                          className="text-ink-mute hover:text-ink"
-                        >
-                          <X className="w-4 h-4" />
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <label className="flex items-center gap-2 cursor-pointer border border-dashed border-line hover:border-primary rounded-md px-4 py-3 text-sm text-ink-soft">
-                  {uploadingReport ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  {uploadingReport ? 'Uploading…' : 'Attach a PDF, JPG or PNG'}
-                  <input type="file" accept=".pdf,.jpg,.jpeg,.png" className="sr-only" onChange={handleFileUpload} />
-                </label>
-              </div>
+              <p className="text-sm text-ink-soft bg-primary-wash rounded-md px-3 py-2.5">
+                Have scans, X-rays or reports? Send them on{' '}
+                <a
+                  href={whatsappLink(content.clinic.whatsapp, 'Hello Dr. Tejaswini, I am sending my reports for my upcoming consultation.')}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary font-semibold underline underline-offset-4"
+                >
+                  WhatsApp
+                </a>{' '}
+                after booking, with your booking ID.
+              </p>
 
               {errorMsg && (
                 <p role="alert" className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2.5">

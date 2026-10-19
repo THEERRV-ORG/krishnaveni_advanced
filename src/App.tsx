@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Navbar } from './components/Navbar';
 import { HeroBanner } from './components/HeroBanner';
 import { AboutDoctor } from './components/AboutDoctor';
@@ -6,7 +6,6 @@ import { ServicesGrid } from './components/ServicesGrid';
 import { HowItWorks } from './components/HowItWorks';
 import { BookingModal } from './components/BookingModal';
 import { PatientDashboard } from './components/PatientDashboard';
-import { AdminDashboard } from './components/AdminDashboard';
 import { TestimonialsSection } from './components/TestimonialsSection';
 import { FAQSection } from './components/FAQSection';
 import { ContactSection } from './components/ContactSection';
@@ -32,8 +31,12 @@ import {
 
 import { MessageCircle } from 'lucide-react';
 import { whatsappLink } from './utils/whatsapp';
+import { FALLBACK_CONTENT, getSiteContent, type SiteContent } from './lib/data';
 import { routeForPath } from './routes';
 import { currentSectionPath, getPendingPath, scrollToPath } from './navigation';
+
+// Loaded on demand so the Firebase sign-in code stays out of the public bundle.
+const AdminDashboard = lazy(() => import('./components/AdminDashboard').then(m => ({ default: m.AdminDashboard })));
 
 export default function App() {
   const [clinicInfo, setClinicInfo] = useState<ClinicInfo>(INITIAL_CLINIC_INFO);
@@ -41,6 +44,7 @@ export default function App() {
   const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
   const [testimonials, setTestimonials] = useState<Testimonial[]>(INITIAL_TESTIMONIALS);
   const [faqs, setFaqs] = useState<FAQItem[]>(INITIAL_FAQS);
+  const [siteContent, setSiteContent] = useState<SiteContent>(FALLBACK_CONTENT);
 
   const [activeSection, setActiveSection] = useState(() => routeForPath(window.location.pathname)?.id ?? 'home');
 
@@ -56,35 +60,16 @@ export default function App() {
 
   // Fetch live store data from backend Express server
   useEffect(() => {
-    const loadBackendData = async () => {
-      try {
-        const [clinicRes, srvRes, contentRes] = await Promise.all([
-          fetch('/api/clinic-info'),
-          fetch('/api/services'),
-          fetch('/api/content')
-        ]);
-
-        if (clinicRes.ok) {
-          const cData = await clinicRes.json();
-          if (cData.clinic) setClinicInfo(cData.clinic);
-          if (cData.doctor) setDoctor(cData.doctor);
-        }
-
-        if (srvRes.ok) {
-          const sData = await srvRes.json();
-          if (Array.isArray(sData) && sData.length > 0) setServices(sData);
-        }
-
-        if (contentRes.ok) {
-          const cntData = await contentRes.json();
-          if (cntData.testimonials) setTestimonials(cntData.testimonials);
-          if (cntData.faqs) setFaqs(cntData.faqs);
-        }
-      } catch (err) {
-        console.log('Using initial client data store', err);
-      }
-    };
-    loadBackendData();
+    getSiteContent()
+      .then(content => {
+        setSiteContent(content);
+        setClinicInfo(content.clinic);
+        setDoctor(content.doctor);
+        setServices(content.services);
+        setTestimonials(content.testimonials);
+        setFaqs(content.faqs);
+      })
+      .catch(err => console.error('Site content could not be loaded; showing built-in copy.', err));
   }, []);
 
   // Deep links (/about, /faq, ...) open at their section; back/forward scroll between sections.
@@ -207,6 +192,7 @@ export default function App() {
       </div>
 
       <BookingModal
+        content={{ ...siteContent, clinic: clinicInfo }}
         services={services}
         preselectedService={bookingPreselectedService}
         initialType={bookingInitialType}
@@ -224,12 +210,17 @@ export default function App() {
         whatsapp={clinicInfo.whatsapp}
       />
 
-      <AdminDashboard
-        isOpen={adminDashboardOpen}
-        onClose={closeAdminDashboard}
-        doctor={doctor}
-        onDoctorUpdated={(updatedDoc) => setDoctor(updatedDoc)}
-      />
+      {adminDashboardOpen && (
+        <Suspense fallback={<div className="fixed inset-0 z-50 bg-paper" />}>
+          <AdminDashboard
+            isOpen={adminDashboardOpen}
+            onClose={closeAdminDashboard}
+            doctor={doctor}
+            maxPerSlot={siteContent.schedule.maxPerSlot}
+            onDoctorUpdated={(updatedDoc) => setDoctor(updatedDoc)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 }

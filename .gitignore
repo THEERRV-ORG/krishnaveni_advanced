@@ -6,3 +6,11 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Local data is no longer used; bookings live in Firestore
+data/
+
+# Firebase service-account keys
+*-firebase-adminsdk-*.json
+service-account*.json
+.firebase/

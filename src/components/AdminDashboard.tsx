@@ -4,9 +4,6 @@ import {
   ArrowLeft,
   Download,
   ExternalLink,
-  Eye,
-  EyeOff,
-  FileText,
   Loader2,
   LogOut,
   Phone,
@@ -17,21 +14,37 @@ import {
 import { Appointment, Doctor } from '../types';
 import { whatsappLink } from '../utils/whatsapp';
 import { DoctorPortrait } from './DoctorPortrait';
+import {
+  adminErrorMessage,
+  isFirebaseConfigured,
+  signInWithGoogle,
+  signOutAdmin,
+  watchAdminUser,
+} from '../lib/adminAuth';
+import {
+  cancelAppointment,
+  getDefaultMeetingLink,
+  isAdminAccount,
+  isSiteSetUp,
+  listAppointments,
+  reopenAppointment,
+  saveDoctorPhoto,
+  seedSiteContent,
+  setDefaultMeetingLink,
+  updateAppointmentFields,
+} from '../lib/data';
 
 interface AdminDashboardProps {
   isOpen: boolean;
   onClose: () => void;
   doctor?: Doctor;
+  maxPerSlot: number;
   onDoctorUpdated?: (doctor: Doctor) => void;
 }
 
 type Tab = 'overview' | 'appointments' | 'settings';
 type StatusFilter = 'All' | 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
 type WhenFilter = 'Upcoming' | 'Past' | 'All dates';
-
-// Client-side login only; see the server-side auth follow-up before going live.
-const DEFAULT_EMAIL = 'krishnavenirehab@gmail.com';
-const DEFAULT_PASSWORD = 'admin123';
 
 const STATUS_STYLE: Record<string, { dot: string; text: string }> = {
   Confirmed: { dot: 'bg-primary', text: 'text-primary' },
@@ -43,14 +56,6 @@ const STATUS_STYLE: Record<string, { dot: string; text: string }> = {
 const inputClass =
   'w-full bg-white border border-line rounded-md px-3 py-2.5 text-ink placeholder:text-ink-mute focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary';
 const labelClass = 'block text-sm text-ink-soft mb-1';
-
-function readStored(key: string, fallback: string): string {
-  try {
-    return localStorage.getItem(key) || fallback;
-  } catch {
-    return fallback;
-  }
-}
 
 function localToday(): string {
   const now = new Date();
@@ -92,14 +97,13 @@ const StatusLabel: React.FC<{ status: string }> = ({ status }) => {
   );
 };
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose, doctor, onDoctorUpdated }) => {
-  const [savedEmail, setSavedEmail] = useState(() => readStored('kpv_admin_email', DEFAULT_EMAIL));
-  const [savedPassword, setSavedPassword] = useState(() => readStored('kpv_admin_password', DEFAULT_PASSWORD));
-  const [signedIn, setSignedIn] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [showLoginPassword, setShowLoginPassword] = useState(false);
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose, doctor, maxPerSlot, onDoctorUpdated }) => {
+  // 'checking' until Firebase reports whether a Google session exists and the server accepts it.
+  const [authState, setAuthState] = useState<'checking' | 'signedOut' | 'signedIn'>('checking');
+  const [adminEmail, setAdminEmail] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [signingIn, setSigningIn] = useState(false);
+  const signedIn = authState === 'signedIn';
 
   const [tab, setTab] = useState<Tab>('overview');
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -111,19 +115,63 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
   const [whenFilter, setWhenFilter] = useState<WhenFilter>('Upcoming');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    return watchAdminUser(async user => {
+      if (!user) {
+        setAuthState('signedOut');
+        return;
+      }
+      try {
+        const email = user.email?.toLowerCase() ?? '';
+        if (!user.emailVerified || !email || !(await isAdminAccount(email))) {
+          await signOutAdmin();
+          setLoginError(`${user.email ?? 'This account'} is not an admin. Ask the clinic to add it in Firebase.`);
+          setAuthState('signedOut');
+          return;
+        }
+        setAdminEmail(email);
+        setLoginError('');
+        setAuthState('signedIn');
+      } catch (err) {
+        await signOutAdmin();
+        setLoginError(adminErrorMessage(err, 'Sign-in could not be checked. Try again.'));
+        setAuthState('signedOut');
+      }
+    });
+  }, [isOpen]);
+
   const loadAppointments = async () => {
     setLoading(true);
     setLoadError('');
     try {
-      const res = await fetch('/api/appointments');
-      if (!res.ok) throw new Error('load failed');
-      const data = await res.json();
-      setAppointments(Array.isArray(data) ? data : []);
-    } catch {
-      setLoadError('Bookings could not be loaded. Check that the server is running, then refresh.');
+      setAppointments(await listAppointments());
+    } catch (err) {
+      setLoadError(adminErrorMessage(err, 'Bookings could not be loaded. Refresh to try again.'));
     } finally {
       setLoading(false);
     }
+  };
+
+  const downloadCsv = () => {
+    const cell = (value: unknown) => {
+      let text = value === undefined || value === null ? '' : String(value);
+      // Stop spreadsheet apps treating patient-entered text as a formula.
+      if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+    const header = ['Booking ID', 'Patient', 'Age', 'Gender', 'Phone', 'Email', 'City', 'Date', 'Time', 'Status', 'Complaint', 'Booked at'];
+    const rows = appointments.map(a => [
+      a.id, a.patientName, a.patientAge, a.patientGender, a.patientPhone, a.patientEmail, a.patientAddress,
+      a.date, a.timeSlot, a.status, a.problemDescription, a.createdAt,
+    ]);
+    const csv = '\uFEFF' + [header, ...rows].map(r => r.map(cell).join(',')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `appointments-${localToday()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
   };
 
   useEffect(() => {
@@ -158,19 +206,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
 
   if (!isOpen) return null;
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (loginEmail.trim().toLowerCase() === savedEmail.toLowerCase() && loginPassword === savedPassword) {
-      setSignedIn(true);
-      setLoginError('');
-      setLoginPassword('');
-    } else {
-      setLoginError('That email and password do not match.');
+  const handleGoogleSignIn = async () => {
+    setSigningIn(true);
+    setLoginError('');
+    try {
+      await signInWithGoogle();
+      // watchAdminUser checks the account with the server and finishes signing in.
+    } catch (err: any) {
+      if (err?.code !== 'auth/popup-closed-by-user' && err?.code !== 'auth/cancelled-popup-request') {
+        setLoginError('Google sign-in did not complete. Allow pop-ups for this site and try again.');
+      }
+    } finally {
+      setSigningIn(false);
     }
   };
 
-  const signOut = () => {
-    setSignedIn(false);
+  const signOut = async () => {
+    await signOutAdmin();
     setAppointments([]);
     setSelectedId(null);
     setTab('overview');
@@ -237,46 +289,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
 
       <main className="flex-1 overflow-y-auto">
         {!signedIn ? (
-          <form onSubmit={handleLogin} className="max-w-sm mx-auto px-4 py-16">
+          <div className="max-w-sm mx-auto px-4 py-16">
             <span className="band mb-5" />
             <h1 className="text-3xl text-ink">Sign in</h1>
-            <p className="mt-2 text-ink-soft">For clinic staff only.</p>
+            <p className="mt-2 text-ink-soft">For clinic staff only. Use the clinic's Google account.</p>
 
-            <label htmlFor="admin-email" className={`${labelClass} mt-8`}>Email</label>
-            <input id="admin-email" type="email" autoComplete="username" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)} className={inputClass} />
-
-            <label htmlFor="admin-password" className={`${labelClass} mt-4`}>Password</label>
-            <div className="relative">
-              <input
-                id="admin-password"
-                type={showLoginPassword ? 'text' : 'password'}
-                autoComplete="current-password"
-                required
-                value={loginPassword}
-                onChange={e => setLoginPassword(e.target.value)}
-                className={`${inputClass} pr-11`}
-              />
+            {!isFirebaseConfigured ? (
+              <p role="alert" className="mt-8 flex items-start gap-2 text-sm text-red-700">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                Firebase is not configured. Add the VITE_FIREBASE_* settings to .env and restart the server.
+              </p>
+            ) : authState === 'checking' ? (
+              <p className="mt-8 flex items-center gap-2 text-ink-soft">
+                <Loader2 className="w-4 h-4 animate-spin" /> Checking your sign-in…
+              </p>
+            ) : (
               <button
                 type="button"
-                onClick={() => setShowLoginPassword(v => !v)}
-                aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
-                className="absolute inset-y-0 right-0 px-3 text-ink-mute hover:text-ink"
+                onClick={handleGoogleSignIn}
+                disabled={signingIn}
+                className="mt-8 w-full inline-flex items-center justify-center gap-3 bg-white border border-line hover:border-primary text-ink font-semibold py-2.5 rounded-md transition-colors disabled:opacity-60"
               >
-                {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {signingIn ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <svg aria-hidden width="18" height="18" viewBox="0 0 48 48">
+                    <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z" />
+                    <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z" />
+                    <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.3 0-9.7-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z" />
+                    <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 38.2 44 33 44 24c0-1.3-.1-2.4-.4-3.5z" />
+                  </svg>
+                )}
+                {signingIn ? 'Waiting for Google…' : 'Sign in with Google'}
               </button>
-            </div>
+            )}
 
             {loginError && (
-              <p role="alert" className="mt-3 flex items-start gap-2 text-sm text-red-700">
+              <p role="alert" className="mt-4 flex items-start gap-2 text-sm text-red-700">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 {loginError}
               </p>
             )}
-
-            <button type="submit" className="mt-6 w-full bg-primary hover:bg-primary-deep text-paper font-semibold py-2.5 rounded-md transition-colors">
-              Sign in
-            </button>
-          </form>
+          </div>
         ) : (
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
             {loadError && (
@@ -315,10 +369,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
                     <button type="button" onClick={loadAppointments} aria-label="Refresh" className="p-2.5 border border-line rounded-md text-ink-soft hover:text-ink bg-white">
                       <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
                     </button>
-                    <a href="/api/reports/export?type=appointments" download className="inline-flex items-center gap-1.5 px-3 py-2.5 border border-line rounded-md text-sm text-ink-soft hover:text-ink bg-white">
+                    <button type="button" onClick={downloadCsv} className="inline-flex items-center gap-1.5 px-3 py-2.5 border border-line rounded-md text-sm text-ink-soft hover:text-ink bg-white">
                       <Download className="w-4 h-4" />
                       Export CSV
-                    </a>
+                    </button>
                   </div>
 
                   <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
@@ -391,6 +445,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
                       appointment={selected}
                       onBack={() => setSelectedId(null)}
                       onUpdated={replaceAppointment}
+                      maxPerSlot={maxPerSlot}
                     />
                   ) : (
                     <p className="lg:sticky lg:top-0 text-ink-mute border border-dashed border-line rounded-md p-6">
@@ -405,11 +460,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
               <Settings
                 doctor={doctor}
                 onDoctorUpdated={onDoctorUpdated}
-                savedEmail={savedEmail}
-                onCredentialsChanged={(email, password) => {
-                  setSavedEmail(email);
-                  setSavedPassword(password);
-                }}
+                adminEmail={adminEmail}
               />
             )}
           </div>
@@ -508,9 +559,10 @@ interface AppointmentDetailProps {
   appointment: Appointment;
   onBack: () => void;
   onUpdated: (appointment: Appointment) => void;
+  maxPerSlot: number;
 }
 
-const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, onBack, onUpdated }) => {
+const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, onBack, onUpdated, maxPerSlot }) => {
   const [meetLink, setMeetLink] = useState(a.meetingLink || '');
   const [saving, setSaving] = useState<string | null>(null);
   const [error, setError] = useState('');
@@ -518,22 +570,16 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
   const [confirmingCancel, setConfirmingCancel] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
-  const update = async (key: string, body: Record<string, string>, message: string) => {
+  const run = async (key: string, action: () => Promise<Appointment>, message: string) => {
     setSaving(key);
     setError('');
     setNotice('');
     try {
-      const res = await fetch(`/api/appointments/${a.id}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) throw new Error('update failed');
-      onUpdated(await res.json());
+      onUpdated(await action());
       setNotice(message);
       setConfirmingCancel(false);
-    } catch {
-      setError('The change could not be saved. Try again.');
+    } catch (err) {
+      setError(adminErrorMessage(err, 'The change could not be saved. Try again.'));
     } finally {
       setSaving(null);
     }
@@ -588,22 +634,6 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
         <p className="mt-1 text-ink leading-relaxed whitespace-pre-line">{a.problemDescription || 'No complaint given.'}</p>
       </div>
 
-      <div className="px-5 py-4 border-t border-line">
-        <h3 className="text-sm text-ink-mute">Reports ({a.medicalReports?.length ?? 0})</h3>
-        {a.medicalReports?.length ? (
-          <ul className="mt-2 space-y-2">
-            {a.medicalReports.map((rep, idx) => (
-              <li key={`${rep.name}-${idx}`} className="flex items-center gap-3 text-sm">
-                <FileText className="w-4 h-4 text-primary shrink-0" />
-                <span className="truncate flex-1 text-ink">{rep.name}</span>
-                <a href={rep.url} download={rep.name} className="text-primary font-semibold hover:underline underline-offset-4">Download</a>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="mt-1 text-sm text-ink-soft">None shared.</p>
-        )}
-      </div>
 
       <div className="px-5 py-4 border-t border-line">
         <label htmlFor="apt-meet" className="text-sm text-ink-mute">Consultation link</label>
@@ -612,7 +642,7 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
           <button
             type="button"
             disabled={!meetLink.trim() || meetLink.trim() === (a.meetingLink || '') || saving !== null}
-            onClick={() => update('link', { meetingLink: meetLink.trim() }, 'Consultation link saved.')}
+            onClick={() => run('link', () => updateAppointmentFields(a, { meetingLink: meetLink.trim() }), 'Consultation link saved.')}
             className="shrink-0 px-3.5 border border-line rounded-md text-sm text-ink hover:border-primary disabled:opacity-40"
           >
             {saving === 'link' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save'}
@@ -641,7 +671,7 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
               <button
                 type="button"
                 disabled={saving !== null}
-                onClick={() => update('cancel', { status: 'Cancelled', cancellationReason: cancelReason.trim() || 'Cancelled by clinic' }, 'Booking cancelled.')}
+                onClick={() => run('cancel', () => cancelAppointment(a, cancelReason.trim() || 'Cancelled by clinic'), 'Booking cancelled. The time is free again.')}
                 className="inline-flex items-center gap-1.5 bg-red-700 hover:bg-red-800 text-white text-sm font-semibold px-4 py-2 rounded-md disabled:opacity-60"
               >
                 {saving === 'cancel' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -656,7 +686,7 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
               <button
                 type="button"
                 disabled={saving !== null}
-                onClick={() => update('complete', { status: 'Completed' }, 'Marked as completed.')}
+                onClick={() => run('complete', () => updateAppointmentFields(a, { status: 'Completed' }), 'Marked as completed.')}
                 className="inline-flex items-center gap-1.5 bg-primary hover:bg-primary-deep text-paper text-sm font-semibold px-4 py-2 rounded-md disabled:opacity-60"
               >
                 {saving === 'complete' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
@@ -667,7 +697,7 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
               <button
                 type="button"
                 disabled={saving !== null}
-                onClick={() => update('confirm', { status: 'Confirmed' }, 'Booking confirmed.')}
+                onClick={() => run('confirm', () => updateAppointmentFields(a, { status: 'Confirmed' }), 'Booking confirmed.')}
                 className="px-4 py-2 border border-primary text-primary text-sm font-semibold rounded-md disabled:opacity-60"
               >
                 Confirm
@@ -682,7 +712,7 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
               <button
                 type="button"
                 disabled={saving !== null}
-                onClick={() => update('reopen', { status: 'Confirmed' }, 'Booking reopened as confirmed.')}
+                onClick={() => run('reopen', () => reopenAppointment(a, maxPerSlot), 'Booking reopened as confirmed.')}
                 className="px-4 py-2 border border-line text-ink text-sm rounded-md hover:border-primary disabled:opacity-60"
               >
                 Reopen as confirmed
@@ -700,26 +730,27 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
 interface SettingsProps {
   doctor?: Doctor;
   onDoctorUpdated?: (doctor: Doctor) => void;
-  savedEmail: string;
-  onCredentialsChanged: (email: string, password: string) => void;
+  adminEmail: string;
 }
 
-const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, savedEmail, onCredentialsChanged }) => {
+type FormState = { busy: boolean; message: string; error: boolean };
+const idle: FormState = { busy: false, message: '', error: false };
+const failure = (err: unknown, fallback: string): FormState => ({
+  busy: false,
+  error: true,
+  message: adminErrorMessage(err, fallback),
+});
+
+const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, adminEmail }) => {
   const fileRef = useRef<HTMLInputElement>(null);
-  const [photoState, setPhotoState] = useState<{ busy: boolean; message: string; error: boolean }>({ busy: false, message: '', error: false });
-
+  const [photoState, setPhotoState] = useState<FormState>(idle);
   const [defaultLink, setDefaultLink] = useState('');
-  const [linkState, setLinkState] = useState({ busy: false, message: '', error: false });
-
-  const [email, setEmail] = useState(savedEmail);
-  const [password, setPassword] = useState('');
-  const [credMessage, setCredMessage] = useState('');
+  const [linkState, setLinkState] = useState<FormState>(idle);
 
   useEffect(() => {
-    fetch('/api/admin/meeting-link')
-      .then(r => r.json())
-      .then(data => setDefaultLink(data.meetingLink || ''))
-      .catch(() => setLinkState({ busy: false, message: 'The current link could not be loaded.', error: true }));
+    getDefaultMeetingLink()
+      .then(setDefaultLink)
+      .catch(err => setLinkState(failure(err, 'The current link could not be loaded.')));
   }, []);
 
   const uploadPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -729,25 +760,20 @@ const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, savedEmail
       setPhotoState({ busy: false, message: 'Choose a JPG, PNG or WEBP image.', error: true });
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setPhotoState({ busy: false, message: 'The image is over 5 MB. Choose a smaller one.', error: true });
+    if (file.size > 15 * 1024 * 1024) {
+      setPhotoState({ busy: false, message: 'The image is over 15 MB. Choose a smaller one.', error: true });
       return;
     }
     setPhotoState({ busy: true, message: '', error: false });
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        const res = await fetch('/api/admin/upload-doctor-photo', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ imageBase64: reader.result as string, filename: file.name }),
-        });
-        if (!res.ok) throw new Error('upload failed');
-        const data = await res.json();
-        if (data.doctor) onDoctorUpdated?.(data.doctor);
+        const dataUrl = await shrinkImage(reader.result as string);
+        await saveDoctorPhoto(dataUrl);
+        if (doctor) onDoctorUpdated?.({ ...doctor, avatarUrl: dataUrl });
         setPhotoState({ busy: false, message: 'Photo updated on the website.', error: false });
-      } catch {
-        setPhotoState({ busy: false, message: 'The photo could not be uploaded. Try again.', error: true });
+      } catch (err) {
+        setPhotoState(failure(err, 'The photo could not be uploaded. Try again.'));
       } finally {
         if (fileRef.current) fileRef.current.value = '';
       }
@@ -759,28 +785,10 @@ const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, savedEmail
     e.preventDefault();
     setLinkState({ busy: true, message: '', error: false });
     try {
-      const res = await fetch('/api/admin/meeting-link', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ meetingLink: defaultLink.trim() }),
-      });
-      if (!res.ok) throw new Error('save failed');
+      await setDefaultMeetingLink(defaultLink.trim());
       setLinkState({ busy: false, message: 'Saved. New bookings will use this link.', error: false });
-    } catch {
-      setLinkState({ busy: false, message: 'The link could not be saved. Check it starts with https://.', error: true });
-    }
-  };
-
-  const saveCredentials = (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      localStorage.setItem('kpv_admin_email', email.trim());
-      localStorage.setItem('kpv_admin_password', password);
-      onCredentialsChanged(email.trim(), password);
-      setPassword('');
-      setCredMessage('Sign-in details changed for this browser.');
-    } catch {
-      setCredMessage('This browser blocked saving the new details.');
+    } catch (err) {
+      setLinkState(failure(err, 'The link could not be saved.'));
     }
   };
 
@@ -788,6 +796,8 @@ const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, savedEmail
 
   return (
     <div className="border-t border-line">
+      <SetupSection className={section} />
+
       <section className={section}>
         <div className="md:col-span-4">
           <h2 className="text-xl text-ink">Doctor's photo</h2>
@@ -796,7 +806,7 @@ const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, savedEmail
         <div className="md:col-span-8 flex items-start gap-5">
           {doctor && <DoctorPortrait doctor={doctor} className="w-28 aspect-[4/5] rounded-sm shrink-0" />}
           <div>
-            <input ref={fileRef} type="file" accept="image/*" onChange={uploadPhoto} className="sr-only" id="doctor-photo" />
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadPhoto} className="sr-only" id="doctor-photo" />
             <label htmlFor="doctor-photo" className="inline-flex items-center gap-2 px-4 py-2 border border-line bg-white rounded-md text-sm text-ink cursor-pointer hover:border-primary">
               {photoState.busy && <Loader2 className="w-4 h-4 animate-spin" />}
               {photoState.busy ? 'Uploading…' : 'Upload a new photo'}
@@ -815,7 +825,7 @@ const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, savedEmail
         </div>
         <div className="md:col-span-8 max-w-lg">
           <label htmlFor="default-link" className={labelClass}>Link</label>
-          <input id="default-link" type="url" required value={defaultLink} onChange={e => setDefaultLink(e.target.value)} className={inputClass} />
+          <input id="default-link" type="url" required pattern="https://.*" value={defaultLink} onChange={e => setDefaultLink(e.target.value)} className={inputClass} />
           <button type="submit" disabled={linkState.busy} className="mt-3 inline-flex items-center gap-1.5 bg-primary hover:bg-primary-deep text-paper text-sm font-semibold px-4 py-2 rounded-md disabled:opacity-60">
             {linkState.busy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
             Save link
@@ -826,26 +836,93 @@ const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, savedEmail
         </div>
       </form>
 
-      <form onSubmit={saveCredentials} className={section}>
+      <section className={section}>
         <div className="md:col-span-4">
-          <h2 className="text-xl text-ink">Admin sign-in</h2>
-          <p className="mt-1 text-sm text-ink-soft">Saved in this browser only. Other devices keep their own sign-in.</p>
+          <h2 className="text-xl text-ink">Admin access</h2>
+          <p className="mt-1 text-sm text-ink-soft">
+            Staff sign in with Google. To add someone, create a document named after their email in the admins collection in the Firebase console.
+          </p>
         </div>
-        <div className="md:col-span-8 max-w-lg space-y-3">
-          <div>
-            <label htmlFor="new-email" className={labelClass}>Email</label>
-            <input id="new-email" type="email" required value={email} onChange={e => setEmail(e.target.value)} className={inputClass} />
-          </div>
-          <div>
-            <label htmlFor="new-password" className={labelClass}>New password</label>
-            <input id="new-password" type="password" required minLength={8} autoComplete="new-password" value={password} onChange={e => setPassword(e.target.value)} className={inputClass} />
-          </div>
-          <button type="submit" className="px-4 py-2 border border-line bg-white rounded-md text-sm text-ink hover:border-primary">
-            Change sign-in
-          </button>
-          {credMessage && <p className="text-sm text-primary">{credMessage}</p>}
-        </div>
-      </form>
+        <p className="md:col-span-8 text-ink">
+          Signed in as <span className="font-semibold">{adminEmail}</span>
+        </p>
+      </section>
     </div>
+  );
+};
+
+/** Resize and re-encode a photo so it fits in a Firestore document (well under 1 MB). */
+function shrinkImage(dataUrl: string, maxSide = 900, quality = 0.85): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Canvas unavailable'));
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => reject(new Error('That image could not be read.'));
+    img.src = dataUrl;
+  });
+}
+
+/** Shown until the site's starting content has been written to Firestore. */
+const SetupSection: React.FC<{ className: string }> = ({ className }) => {
+  const [state, setState] = useState<'checking' | 'needed' | 'done' | 'hidden'>('checking');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    isSiteSetUp()
+      .then(done => setState(done ? 'hidden' : 'needed'))
+      .catch(() => setState('hidden'));
+  }, []);
+
+  if (state === 'checking' || state === 'hidden') return null;
+
+  const setUp = async () => {
+    setBusy(true);
+    setError('');
+    try {
+      await seedSiteContent();
+      setState('done');
+    } catch (err) {
+      setError(adminErrorMessage(err, 'Setup could not be saved. Try again.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className={className}>
+      <div className="md:col-span-4">
+        <h2 className="text-xl text-ink">First-time setup</h2>
+        <p className="mt-1 text-sm text-ink-soft">
+          Copies the clinic details, time slots, services, FAQs and reviews into the database. Do this once.
+        </p>
+      </div>
+      <div className="md:col-span-8">
+        {state === 'done' ? (
+          <p className="text-primary">Done. The website now reads its content from the database.</p>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={setUp}
+              disabled={busy}
+              className="inline-flex items-center gap-1.5 bg-primary hover:bg-primary-deep text-paper text-sm font-semibold px-4 py-2 rounded-md disabled:opacity-60"
+            >
+              {busy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Set up site content
+            </button>
+            {error && <p className="mt-2 text-sm text-red-700">{error}</p>}
+          </>
+        )}
+      </div>
+    </section>
   );
 };
