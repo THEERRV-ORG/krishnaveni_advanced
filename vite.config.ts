@@ -17,7 +17,7 @@ export default defineConfig(() => {
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
       // data/store.json is rewritten on every booking; watching it reloads the page mid-flow.
-      watch: process.env.DISABLE_HMR === 'true' ? null : { ignored: ['**/data/**'] },
+      watch: process.env.DISABLE_HMR === 'true' ? null : { ignored: [path.resolve(__dirname, 'data').replace(/\\/g, '/') + '/**'] },
     },
   };
 });

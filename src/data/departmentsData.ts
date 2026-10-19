@@ -23,7 +23,7 @@ export const CLINICAL_DEPARTMENTS: DepartmentInfo[] = [
       },
       {
         condition: 'Multiple Sclerosis',
-        description: 'Specialized neuro-rehab protocols for Multiple Sclerosis (MS), ataxia, sensory-motor coordination (Frenkelâ€™s exercises), and fatigue management.',
+        description: 'Specialized neuro-rehab protocols for Multiple Sclerosis (MS), ataxia, sensory-motor coordination (Frenkel’s exercises), and fatigue management.',
         keySymptoms: ['Coordination loss & clumsy movement', 'Muscle weakness & tremors', 'Sensory numbness/tingling', 'Chronic neuro fatigue']
       },
       {
@@ -33,7 +33,7 @@ export const CLINICAL_DEPARTMENTS: DepartmentInfo[] = [
       },
       {
         condition: 'Any Other Neurological Conditions',
-        description: 'Evidence-based physical therapy for Bellâ€™s palsy (facial palsy), Peripheral Neuropathy, Spinal Cord Injury (SCI), Guillain-BarrÃ© Syndrome (GBS), Cerebellar Ataxia, and motor neuropathy.',
+        description: 'Evidence-based physical therapy for Bell’s palsy (facial palsy), Peripheral Neuropathy, Spinal Cord Injury (SCI), Guillain-Barré Syndrome (GBS), Cerebellar Ataxia, and motor neuropathy.',
         keySymptoms: ['Facial muscle drooping & asymmetry', 'Diabetic peripheral numbness in feet', 'Foot drop and balance loss', 'Post-spinal injury mobility rehabilitation']
       }
     ],
@@ -97,7 +97,7 @@ export const CLINICAL_DEPARTMENTS: DepartmentInfo[] = [
         keySymptoms: ['First-step morning heel pain', 'Arch ache after standing', 'Heel bone tenderness']
       },
       {
-        condition: 'Tennis Elbow & Golferâ€™s Elbow (Epicondylitis)',
+        condition: 'Tennis Elbow & Golfer’s Elbow (Epicondylitis)',
         description: 'Eccentric wrist tendon loading, forearm fascial release, and repetitive strain rehabilitation.',
         keySymptoms: ['Outer elbow soreness', 'Weak gripping power', 'Pain lifting cups/bags']
       }
@@ -131,7 +131,7 @@ export const CLINICAL_DEPARTMENTS: DepartmentInfo[] = [
     name: 'Post-surgical rehabilitation',
     shortCode: 'Post-Op',
     tagline: 'Staged recovery after surgery, fractures and trauma, from first movements to full function.',
-    overview: 'Post-surgical rehabilitation is vital for preventing joint stiffness, restoring muscle bulk, and safely returning to everyday activities after orthopedic or spinal surgery. Dr. Tejaswini guides patients through evidence-based, phased recovery protocols customized to their surgeonâ€™s guidelines.',
+    overview: 'Post-surgical rehabilitation is vital for preventing joint stiffness, restoring muscle bulk, and safely returning to everyday activities after orthopedic or spinal surgery. Dr. Tejaswini guides patients through evidence-based, phased recovery protocols customized to their surgeon’s guidelines.',
     imageUrl: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?auto=format&fit=crop&q=80&w=800',
     iconName: 'ShieldCheck',
     colorTheme: 'from-emerald-600 to-teal-700',
@@ -183,7 +183,7 @@ export const CLINICAL_DEPARTMENTS: DepartmentInfo[] = [
     expertGuidance: [
       'Commencing structured physiotherapy within the prescribed post-op timeline prevents irreversible joint contractures.',
       'Swelling and pain are carefully managed with elevation, ice therapy routines, and gentle active-assisted movements.',
-      'We work in full alignment with your operating orthopedic surgeonâ€™s post-operative protocol.'
+      'We work in full alignment with your operating orthopedic surgeon’s post-operative protocol.'
     ]
   },
   {
@@ -208,7 +208,7 @@ export const CLINICAL_DEPARTMENTS: DepartmentInfo[] = [
       },
       {
         condition: 'Tendinitis',
-        description: 'Evidence-based eccentric loading, tendon reconditioning, and biomechanical correction for Achilles tendinitis, patellar tendinitis (Jumperâ€™s knee), and elbow tendinitis.',
+        description: 'Evidence-based eccentric loading, tendon reconditioning, and biomechanical correction for Achilles tendinitis, patellar tendinitis (Jumper’s knee), and elbow tendinitis.',
         keySymptoms: ['Focal tendon tenderness and burning', 'Stiffness after resting or in the mornings', 'Pain on explosive or repetitive motion', 'Tendon thickening']
       },
       {
@@ -223,7 +223,7 @@ export const CLINICAL_DEPARTMENTS: DepartmentInfo[] = [
       },
       {
         condition: 'Knee injuries',
-        description: 'Specialized management for ACL/PCL sprains, meniscus tears, runnerâ€™s knee (PFPS), and ligament laxity through kinetic chain alignment and progressive quadriceps/hamstring reconditioning.',
+        description: 'Specialized management for ACL/PCL sprains, meniscus tears, runner’s knee (PFPS), and ligament laxity through kinetic chain alignment and progressive quadriceps/hamstring reconditioning.',
         keySymptoms: ['Knee swelling after physical activity', 'Clicking, catching, or locking sensations', 'Pain going down stairs or squatting', 'Loss of full knee extension']
       },
       {
@@ -258,10 +258,10 @@ export const CLINICAL_DEPARTMENTS: DepartmentInfo[] = [
   },
   {
     id: 'dept-gynae-womens',
-    name: 'Womenâ€™s health',
+    name: 'Women’s health',
     shortCode: 'Gynae',
     tagline: 'Pregnancy and postnatal care, pelvic floor weakness and related pain.',
-    overview: 'Our Gynaecological and Womenâ€™s Health Physiotherapy Department offers specialized, confidential, and evidence-based physical therapy designed for every milestone of a womanâ€™s life. From pregnancy and postpartum recovery to pelvic pain, pelvic organ prolapse, urinary incontinence, and menopausal wellness, Dr. P. Sai Tejaswini provides compassionate, 1-on-1 personalized clinical care.',
+    overview: 'Our Gynaecological and Women’s Health Physiotherapy Department offers specialized, confidential, and evidence-based physical therapy designed for every milestone of a woman’s life. From pregnancy and postpartum recovery to pelvic pain, pelvic organ prolapse, urinary incontinence, and menopausal wellness, Dr. P. Sai Tejaswini provides compassionate, 1-on-1 personalized clinical care.',
     imageUrl: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?auto=format&fit=crop&q=80&w=800',
     iconName: 'Sparkles',
     colorTheme: 'from-pink-600 to-purple-700',
@@ -312,7 +312,7 @@ export const CLINICAL_DEPARTMENTS: DepartmentInfo[] = [
     ],
     expertGuidance: [
       'Over 70% of women perform Kegel exercises incorrectly (often bearing down instead of lifting); proper clinical coaching is essential for real results.',
-      'Gynaecological pelvic floor physiotherapy is highly effective at any ageâ€”whether you are prenatal, 6 months postpartum, or in menopause.',
+      'Gynaecological pelvic floor physiotherapy is highly effective at any age—whether you are prenatal, 6 months postpartum, or in menopause.',
       'Standard abdominal crunches worsen Diastasis Recti and increase downward pelvic pressure; gentle transverse core recruitment is the safe, proven path.'
     ]
   },

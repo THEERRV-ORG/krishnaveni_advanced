@@ -269,6 +269,41 @@
   ],
   "appointments": [
     {
+      "id": "APT-2026-3658",
+      "patientId": "pat-1792405995779",
+      "patientName": "Watch Test",
+      "patientAge": 30,
+      "patientGender": "Male",
+      "patientPhone": "9876543210",
+      "patientEmail": "watch@test.com",
+      "patientAddress": "N/A",
+      "serviceId": "online-consult",
+      "doctorName": "Dr. P. Sai Tejaswini",
+      "consultationType": "Online Consultation",
+      "date": "2026-10-21",
+      "timeSlot": "08:00 PM - 08:45 PM",
+      "durationMinutes": 45,
+      "status": "Confirmed",
+      "problemDescription": "",
+      "medicalHistory": "",
+      "medicalReports": [],
+      "amountPaid": 0,
+      "paymentStatus": "Paid",
+      "razorpayOrderId": "order_ywb14n8o",
+      "razorpayPaymentId": "pay_1792405995779",
+      "meetingLink": "https://meet.jit.si/KrishnaveniRehab_DrSaiTejaswini_Consult",
+      "meetingPassword": "KPV-477",
+      "invoiceNumber": "INV-2026-8324",
+      "whatsappDispatched": true,
+      "whatsappFrom": "+91 94906 05809",
+      "whatsappTo": "9876543210",
+      "whatsappStatus": "Delivered",
+      "emailDispatched": true,
+      "emailFrom": "krishnavenirehab@gmail.com",
+      "emailTo": "watch@test.com",
+      "createdAt": "2026-10-19T10:33:15.779Z"
+    },
+    {
       "id": "APT-2026-1497",
       "patientId": "pat-1792397969430",
       "patientName": "Kumar",
@@ -3410,6 +3445,21 @@
   ],
   "payments": [
     {
+      "id": "PAY-1792405995780",
+      "appointmentId": "APT-2026-3658",
+      "patientName": "Watch Test",
+      "amount": 0,
+      "gstAmount": 0,
+      "totalAmount": 0,
+      "currency": "INR",
+      "status": "Paid",
+      "razorpayPaymentId": "pay_1792405995779",
+      "razorpayOrderId": "order_ywb14n8o",
+      "paymentMethod": "Pending",
+      "createdAt": "2026-10-19T10:33:15.780Z",
+      "invoiceNumber": "INV-2026-8324"
+    },
+    {
       "id": "PAY-1792397969430",
       "appointmentId": "APT-2026-1497",
       "patientName": "Kumar",
@@ -5775,6 +5825,13 @@
     }
   ],
   "activityLogs": [
+    {
+      "id": "log-1792405995780",
+      "action": "New Appointment Booked",
+      "userEmail": "watch@test.com",
+      "details": "Booked undefined on 2026-10-21 at 08:00 PM - 08:45 PM",
+      "timestamp": "2026-10-19T10:33:15.780Z"
+    },
     {
       "id": "log-1792397969430",
       "action": "New Appointment Booked",
