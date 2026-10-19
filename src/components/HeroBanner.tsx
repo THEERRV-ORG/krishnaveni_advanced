@@ -12,7 +12,7 @@ interface HeroBannerProps {
 export const HeroBanner: React.FC<HeroBannerProps> = ({ onOpenBooking, doctor, clinicInfo }) => {
   return (
     <section className="border-b border-line">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 sm:py-16 lg:py-20 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center min-h-[calc(100vh-4rem)]">
 
         <div className="lg:col-span-7">
           <span className="band mb-6" />
@@ -25,7 +25,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onOpenBooking, doctor, c
             Share your scans before the call; you finish with an assessment and a home exercise plan.
           </p>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-5 flex flex-wrap items-center gap-3">
             <button
               type="button"
               onClick={onOpenBooking}
@@ -43,7 +43,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onOpenBooking, doctor, c
             </a>
           </div>
 
-          <dl className="mt-10 pt-6 border-t border-line grid grid-cols-1 sm:grid-cols-3 gap-5 text-sm">
+          <dl className="mt-6 pt-4 border-t border-line grid grid-cols-1 sm:grid-cols-3 gap-5 text-sm">
             <div>
               <dt className="text-ink-mute">Treats</dt>
               <dd className="mt-1 text-ink">Neuro, ortho, post-op, sports and women's health</dd>
@@ -59,9 +59,9 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onOpenBooking, doctor, c
           </dl>
         </div>
 
-        <figure className="lg:col-span-5 w-full max-w-[15rem] sm:max-w-xs lg:max-w-none">
-          <DoctorPortrait doctor={doctor} className="w-full aspect-[4/5] rounded-sm" />
-          <figcaption className="mt-3 text-sm text-ink-soft font-serif italic">
+        <figure className="lg:col-span-5 w-full max-w-[16rem] sm:max-w-[18rem] lg:max-w-[22rem] mx-auto lg:ml-auto lg:mr-0">
+          <DoctorPortrait doctor={doctor} className="w-full aspect-square rounded-sm" />
+          <figcaption className="mt-3 text-sm text-ink-soft font-serif italic text-center">
             {doctor.name}, MPT (Neurology), MIAP — {doctor.title.toLowerCase()}.
           </figcaption>
         </figure>

@@ -64,7 +64,7 @@ export const ServicesGrid: React.FC<ServicesGridProps> = ({ onOpenBooking }) => 
 
         <ul className="divide-y divide-line">
           {visible.map(dept => (
-            <li key={dept.id} className="py-8 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8">
+            <li key={dept.id} className="py-8 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 px-3 -mx-3 rounded-lg transition-colors duration-200 hover:bg-primary-wash/80 group">
               <div className="md:col-span-4">
                 <h3 className="text-xl text-ink">{dept.name}</h3>
                 <p className="mt-2 text-sm text-ink-soft leading-relaxed">{dept.tagline}</p>
@@ -143,7 +143,7 @@ export const ServicesGrid: React.FC<ServicesGridProps> = ({ onOpenBooking }) => 
                 <ol className="mt-4 space-y-4">
                   {activeDept.consultationProtocol.map((proto, idx) => (
                     <li key={proto.step} className="grid grid-cols-[2rem_1fr] gap-2">
-                      <span className="font-serif text-primary">{idx + 1}.</span>
+                      <span className="font-serif text-primary font-bold">{idx + 1}.</span>
                       <div>
                         <p className="font-semibold text-ink">{proto.step}</p>
                         <p className="mt-1 text-sm text-ink-soft leading-relaxed">{proto.description}</p>
@@ -153,11 +153,13 @@ export const ServicesGrid: React.FC<ServicesGridProps> = ({ onOpenBooking }) => 
                 </ol>
               </div>
 
-              <div className="border-l-2 border-accent pl-5">
-                <h4 className="text-lg text-ink">Dr. Tejaswini's guidance</h4>
-                <ul className="mt-3 space-y-2 text-sm text-ink-soft leading-relaxed list-disc pl-4">
-                  {activeDept.expertGuidance.map(guide => (
-                    <li key={guide}>{guide}</li>
+              <div>
+                <h4 className="text-lg text-ink mb-3">Dr. Tejaswini's guidance</h4>
+                <ul className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {activeDept.expertGuidance.map((guide) => (
+                    <li key={guide} className="bg-white border border-line rounded-xl p-5 shadow-sm">
+                      <p className="text-sm text-ink leading-relaxed">{guide}</p>
+                    </li>
                   ))}
                 </ul>
               </div>

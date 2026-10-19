@@ -1,4 +1,5 @@
 import React from 'react';
+import howItWorksBg from '../assets/images/howitworks_bg.webp';
 
 const STEPS = [
   {
@@ -24,17 +25,21 @@ const CHECKLIST = [
 
 export const HowItWorks: React.FC = () => {
   return (
-    <section id="how-it-works" className="py-16 sm:py-24 scroll-mt-24">
+    <section
+      id="how-it-works"
+      className="py-16 sm:py-24 scroll-mt-24 relative"
+      style={{ backgroundImage: `url(${howItWorksBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+    >
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <span className="band mb-5" />
         <h2 className="text-3xl sm:text-4xl text-ink">How a consultation works</h2>
 
-        <ol className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-10 md:gap-8">
+        <ol className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
           {STEPS.map((step, idx) => (
-            <li key={step.title} className="md:border-l md:border-line md:pl-6 first:md:border-l-0 first:md:pl-0">
+            <li key={step.title} className="bg-white/80 border border-black/5 rounded-md p-6 sm:p-8">
               <span className="font-serif text-5xl text-primary leading-none">{idx + 1}</span>
               <h3 className="mt-4 text-xl text-ink">{step.title}</h3>
-              <p className="mt-2 text-ink-soft leading-relaxed">{step.body}</p>
+              <p className="mt-2 text-black leading-relaxed">{step.body}</p>
             </li>
           ))}
         </ol>
@@ -52,5 +57,6 @@ export const HowItWorks: React.FC = () => {
         </div>
       </div>
     </section>
+
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Phone, Mail, Clock } from 'lucide-react';
 import { ClinicInfo } from '../types';
 import { whatsappLink } from '../utils/whatsapp';
 
@@ -33,27 +34,36 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ clinicInfo }) =>
           </p>
 
           <dl className="mt-8 space-y-5">
-            <div>
-              <dt className="text-sm text-ink-mute">Phone and WhatsApp</dt>
-              <dd className="mt-1">
-                <a href={`tel:${clinicInfo.phone.replace(/\s/g, '')}`} className="text-ink text-lg hover:text-primary">
-                  {clinicInfo.phone}
-                </a>
-              </dd>
+            <div className="flex items-start gap-3">
+              <Phone className="w-5 h-5 mt-1 shrink-0 text-primary" aria-hidden />
+              <div>
+                <dt className="sr-only">Phone and WhatsApp</dt>
+                <dd>
+                  <a href={`tel:${clinicInfo.phone.replace(/\s/g, '')}`} className="text-ink text-lg hover:text-primary">
+                    {clinicInfo.phone}
+                  </a>
+                </dd>
+              </div>
             </div>
-            <div>
-              <dt className="text-sm text-ink-mute">Email</dt>
-              <dd className="mt-1">
-                <a href={`mailto:${clinicInfo.email}`} className="text-ink text-lg hover:text-primary">
-                  {clinicInfo.email}
-                </a>
-              </dd>
+            <div className="flex items-start gap-3">
+              <Mail className="w-5 h-5 mt-1 shrink-0 text-primary" aria-hidden />
+              <div>
+                <dt className="sr-only">Email</dt>
+                <dd>
+                  <a href={`mailto:${clinicInfo.email}`} className="text-ink text-lg hover:text-primary">
+                    {clinicInfo.email}
+                  </a>
+                </dd>
+              </div>
             </div>
-            <div>
-              <dt className="text-sm text-ink-mute">Consultation hours</dt>
-              {hours.map(line => (
-                <dd key={line} className="mt-1 text-ink">{line}</dd>
-              ))}
+            <div className="flex items-start gap-3">
+              <Clock className="w-5 h-5 mt-1 shrink-0 text-primary" aria-hidden />
+              <div>
+                <dt className="sr-only">Consultation hours</dt>
+                {hours.map(line => (
+                  <dd key={line} className="text-ink">{line}</dd>
+                ))}
+              </div>
             </div>
           </dl>
         </div>

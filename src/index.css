@@ -21,6 +21,7 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    overflow-x: hidden;
   }
 
   body {
@@ -28,6 +29,7 @@
     color: var(--color-ink);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
   }
 
   h1, h2, h3 {
@@ -49,6 +51,42 @@
   height: 4px;
   border-radius: 2px;
   background: linear-gradient(to right, var(--color-primary-deep) 0 66%, var(--color-accent) 66% 100%);
+}
+
+/* Qualification row: left-to-right background sweep on hover */
+.qual-row {
+  position: relative;
+  overflow: hidden;
+}
+.qual-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  transition: transform 0.5s ease;
+  z-index: 0;
+}
+.qual-row > * {
+  position: relative;
+  z-index: 1;
+}
+.qual-row:hover::before {
+  transform: translateX(0);
+}
+.qual-row--degree::before {
+  background: linear-gradient(to right, var(--color-primary-wash), #b8d8f0);
+}
+.qual-row--cert::before {
+  background: linear-gradient(to right, #d0f2f8, #a0e2ef);
+}
+
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

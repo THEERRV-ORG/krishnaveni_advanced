@@ -1,5 +1,6 @@
 import React from 'react';
 import { Doctor } from '../types';
+import aboutBg from '../assets/images/physio_about_bg3.webp';
 
 interface AboutDoctorProps {
   doctor: Doctor;
@@ -7,47 +8,60 @@ interface AboutDoctorProps {
 }
 
 const QUALIFICATIONS = [
-  { title: 'Master of Physiotherapy (Neurology)', detail: 'MPT' },
-  { title: 'Bachelor of Physiotherapy', detail: 'BPT' },
-  { title: 'Member, Indian Association of Physiotherapists', detail: 'MIAP' },
-  { title: 'Bobath technique', detail: 'Certified' },
-  { title: 'Proprioceptive neuromuscular facilitation', detail: 'PNF' },
-  { title: 'Kinesio taping', detail: 'Certified' },
-  { title: 'Spinal decompression and manual therapy', detail: 'Trained' },
+  { title: 'Master of Physiotherapy (Neurology)', detail: 'MPT', type: 'degree' },
+  { title: 'Bachelor of Physiotherapy', detail: 'BPT', type: 'degree' },
+  { title: 'Member, Indian Association of Physiotherapists', detail: 'MIAP', type: 'degree' },
+  { title: 'Bobath technique', detail: 'Certified', type: 'cert' },
+  { title: 'Proprioceptive neuromuscular facilitation', detail: 'PNF', type: 'cert' },
+  { title: 'Kinesio taping', detail: 'Certified', type: 'cert' },
+  { title: 'Spinal decompression and manual therapy', detail: 'Trained', type: 'cert' },
 ];
 
 export const AboutDoctor: React.FC<AboutDoctorProps> = ({ doctor, onOpenBooking }) => {
   return (
-    <section id="about" className="py-16 sm:py-24 scroll-mt-24">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
+    <section
+      id="about"
+      className="py-16 sm:py-24 scroll-mt-24 relative"
+      style={{
+        backgroundImage: `url(${aboutBg})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      <div className="absolute inset-0 bg-paper/90" />
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
 
-        <div className="lg:col-span-6">
+        <div className="lg:col-span-6 min-w-0 flex flex-col lg:pr-8">
           <span className="band mb-5" />
-          <h2 className="text-3xl sm:text-4xl text-ink">About {doctor.name}</h2>
-          <p className="mt-2 text-ink-mute">{doctor.title}</p>
+          <h2 className="text-3xl sm:text-4xl font-bold" style={{color:'#000000'}}>About {doctor.name}</h2>
+          <p className="mt-2 font-semibold" style={{color:'#0048a8'}}>{doctor.title}</p>
 
-          <div className="mt-8 space-y-5 text-[17px] leading-relaxed text-ink-soft">
+          <div className="mt-8 space-y-5 text-[17px] leading-relaxed font-medium" style={{color:'#1a2e47'}}>
             {doctor.bio.split(/\n\s*\n/).map((para, idx) => (
               <p key={idx}>{para}</p>
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={onOpenBooking}
-            className="mt-8 text-primary font-semibold border-b-2 border-primary/30 hover:border-primary pb-0.5 transition-colors"
-          >
-            Book a consultation with Dr. Tejaswini →
-          </button>
         </div>
 
-        <div className="lg:col-span-5 lg:col-start-8">
-          <h3 className="text-xl text-ink">Qualifications and training</h3>
-          <ul className="mt-5 border-t border-line">
+        <div className="lg:col-span-5 lg:col-start-8 lg:pt-9">
+          <h3 className="text-xl font-bold" style={{color:'#000000'}}>Qualifications and training</h3>
+          <ul className="mt-6 space-y-2">
             {QUALIFICATIONS.map(item => (
-              <li key={item.title} className="flex items-baseline justify-between gap-4 py-3.5 border-b border-line">
-                <span className="text-ink">{item.title}</span>
-                <span className="text-sm text-ink-mute shrink-0">{item.detail}</span>
+              <li
+                key={item.title}
+                className={`qual-row flex items-center justify-between gap-4 pl-4 py-3 pr-4 rounded-r-lg border-l-4 backdrop-blur-sm ${
+                  item.type === 'degree'
+                    ? 'border-primary-deep qual-row--degree bg-white/80'
+                    : 'border-accent qual-row--cert bg-white/80'
+                }`}
+              >
+                <span className="text-[15px] font-medium leading-snug" style={{color:'#14233a'}}>{item.title}</span>
+                <span className={`text-lg font-bold font-serif shrink-0 ${
+                  item.type === 'degree' ? 'text-primary-deep' : 'text-accent-deep'
+                }`}>
+                  {item.detail}
+                </span>
               </li>
             ))}
           </ul>
