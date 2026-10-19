@@ -72,20 +72,13 @@ export const ServicesGrid: React.FC<ServicesGridProps> = ({ onOpenBooking }) => 
               <p className="md:col-span-5 text-[15px] text-ink leading-relaxed">
                 {dept.whatWeTreat.map(item => item.condition).join(' · ')}
               </p>
-              <div className="md:col-span-3 flex md:flex-col md:items-end gap-4 md:gap-2 text-sm">
-                <button
-                  type="button"
-                  onClick={() => book(dept)}
-                  className="text-primary font-semibold hover:underline underline-offset-4 text-left md:text-right"
-                >
-                  {BOOK_LABEL[dept.id] ?? 'Book a consultation'} →
-                </button>
+              <div className="md:col-span-3 flex md:justify-end text-sm">
                 <button
                   type="button"
                   onClick={() => setActiveDept(dept)}
-                  className="text-ink-soft hover:text-ink underline underline-offset-4 decoration-line"
+                  className="text-primary font-semibold hover:underline underline-offset-4"
                 >
-                  Read details
+                  Read details →
                 </button>
               </div>
             </li>
