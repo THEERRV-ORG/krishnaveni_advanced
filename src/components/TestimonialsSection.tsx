@@ -15,7 +15,7 @@ function formatDate(iso: string): string {
 
 export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({ testimonials, whatsapp }) => {
   return (
-    <section id="testimonials" className="py-16 sm:py-24 bg-paper-deep/60 border-y border-line scroll-mt-24">
+    <section id="reviews" className="py-16 sm:py-24 bg-paper-deep/60 border-y border-line scroll-mt-24">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <span className="band mb-5" />
         <h2 className="text-3xl sm:text-4xl text-ink">From patients</h2>

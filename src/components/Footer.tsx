@@ -1,5 +1,7 @@
 import React from 'react';
 import { ClinicInfo } from '../types';
+import { SECTION_ROUTES } from '../routes';
+import { handleSectionLinkClick } from '../navigation';
 
 interface FooterProps {
   clinicInfo: ClinicInfo;
@@ -7,13 +9,7 @@ interface FooterProps {
   onOpenPatientPortal: () => void;
 }
 
-const LINKS = [
-  { href: '#about', label: 'About Dr. Tejaswini' },
-  { href: '#services', label: 'Conditions treated' },
-  { href: '#how-it-works', label: 'How it works' },
-  { href: '#testimonials', label: 'Reviews' },
-  { href: '#faqs', label: 'FAQ' },
-];
+const LINKS = SECTION_ROUTES.filter(route => route.id !== 'home');
 
 export const Footer: React.FC<FooterProps> = ({
   clinicInfo,
@@ -43,8 +39,10 @@ export const Footer: React.FC<FooterProps> = ({
             <p className="text-sm text-paper/50">On this page</p>
             <ul className="mt-3 space-y-2">
               {LINKS.map(link => (
-                <li key={link.href}>
-                  <a href={link.href} className="hover:text-paper">{link.label}</a>
+                <li key={link.path}>
+                  <a href={link.path} onClick={e => handleSectionLinkClick(e, link.path)} className="hover:text-paper">
+                    {link.label}
+                  </a>
                 </li>
               ))}
             </ul>

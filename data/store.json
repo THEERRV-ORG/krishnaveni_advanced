@@ -269,6 +269,41 @@
   ],
   "appointments": [
     {
+      "id": "APT-2026-6567",
+      "patientId": "pat-1792350446241",
+      "patientName": "sam",
+      "patientAge": 20,
+      "patientGender": "Male",
+      "patientPhone": "9999999999",
+      "patientEmail": "abc@gmail.com",
+      "patientAddress": "N/A",
+      "serviceId": "online-consult",
+      "doctorName": "Dr. P. Sai Tejaswini",
+      "consultationType": "Online Consultation",
+      "date": "2026-10-19",
+      "timeSlot": "03:00 PM - 03:45 PM",
+      "durationMinutes": 45,
+      "status": "Confirmed",
+      "problemDescription": "Online Physiotherapy Consultation",
+      "medicalHistory": "",
+      "medicalReports": [],
+      "amountPaid": 0,
+      "paymentStatus": "Paid",
+      "razorpayOrderId": "order_yy70d71n",
+      "razorpayPaymentId": "pay_1792350446241",
+      "meetingLink": "https://meet.jit.si/KrishnaveniRehab_DrSaiTejaswini_Consult",
+      "meetingPassword": "KPV-263",
+      "invoiceNumber": "INV-2026-8958",
+      "whatsappDispatched": true,
+      "whatsappFrom": "+91 94906 05809",
+      "whatsappTo": "9999999999",
+      "whatsappStatus": "Delivered",
+      "emailDispatched": true,
+      "emailFrom": "krishnavenirehab@gmail.com",
+      "emailTo": "abc@gmail.com",
+      "createdAt": "2026-10-18T19:07:26.241Z"
+    },
+    {
       "id": "APT-2026-7671",
       "patientId": "pat-1792347093043",
       "patientName": "UI Test Patient",
@@ -3340,6 +3375,21 @@
   ],
   "payments": [
     {
+      "id": "PAY-1792350446241",
+      "appointmentId": "APT-2026-6567",
+      "patientName": "sam",
+      "amount": 0,
+      "gstAmount": 0,
+      "totalAmount": 0,
+      "currency": "INR",
+      "status": "Paid",
+      "razorpayPaymentId": "pay_1792350446241",
+      "razorpayOrderId": "order_yy70d71n",
+      "paymentMethod": "Pending",
+      "createdAt": "2026-10-18T19:07:26.241Z",
+      "invoiceNumber": "INV-2026-8958"
+    },
+    {
       "id": "PAY-1792347093043",
       "appointmentId": "APT-2026-7671",
       "patientName": "UI Test Patient",
@@ -5675,6 +5725,13 @@
     }
   ],
   "activityLogs": [
+    {
+      "id": "log-1792350446241",
+      "action": "New Appointment Booked",
+      "userEmail": "abc@gmail.com",
+      "details": "Booked undefined on 2026-10-19 at 03:00 PM - 03:45 PM",
+      "timestamp": "2026-10-18T19:07:26.241Z"
+    },
     {
       "id": "log-1792347093043",
       "action": "New Appointment Booked",

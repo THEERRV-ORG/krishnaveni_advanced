@@ -2,28 +2,21 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Menu, X, Phone } from 'lucide-react';
 import { ClinicInfo } from '../types';
 import clinicLogo from '../assets/images/krishnaveni_physio_logo_1785932195343.jpg';
+import { SECTION_ROUTES } from '../routes';
+import { handleSectionLinkClick } from '../navigation';
 
 interface NavbarProps {
   clinicInfo: ClinicInfo;
   activeSection: string;
-  setActiveSection: (section: string) => void;
   onOpenBooking: () => void;
   onOpenPatientPortal: () => void;
 }
 
-const navItems = [
-  { id: 'about', label: 'About' },
-  { id: 'services', label: 'Conditions' },
-  { id: 'how-it-works', label: 'How it works' },
-  { id: 'testimonials', label: 'Reviews' },
-  { id: 'faqs', label: 'FAQ' },
-  { id: 'contact', label: 'Contact' },
-];
+const navItems = SECTION_ROUTES.filter(route => route.id !== 'home');
 
 export const Navbar: React.FC<NavbarProps> = ({
   clinicInfo,
   activeSection,
-  setActiveSection,
   onOpenBooking,
   onOpenPatientPortal,
 }) => {
@@ -81,10 +74,9 @@ export const Navbar: React.FC<NavbarProps> = ({
     }
   };
 
-  const handleNavClick = (id: string) => {
-    setActiveSection(id);
+  const handleNavClick = (event: React.MouseEvent<HTMLAnchorElement>, path: string) => {
     setMobileMenuOpen(false);
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    handleSectionLinkClick(event, path);
   };
 
   return (
@@ -96,9 +88,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 min-h-16 flex items-center justify-between gap-6">
-        <button
-          type="button"
-          onClick={() => handleNavClick('home')}
+        <a
+          href="/"
+          onClick={e => handleNavClick(e, '/')}
+          aria-label="Krishnaveni Advanced Physiotherapy & Rehabilitation Services — home"
           className="flex items-center gap-3 text-left min-w-0"
         >
           <img src={clinicLogo} alt="" className="w-11 h-11 shrink-0 rounded-xl object-contain bg-white border border-line" />
@@ -110,14 +103,15 @@ export const Navbar: React.FC<NavbarProps> = ({
               Physiotherapy &amp; Rehabilitation Services • Dr. P. Sai Tejaswini, MPT (Neuro), MIAP
             </span>
           </span>
-        </button>
+        </a>
 
-        <nav className="hidden xl:flex shrink-0 items-center gap-5 whitespace-nowrap text-sm text-ink-soft">
+        <nav aria-label="Main" className="hidden xl:flex shrink-0 items-center gap-5 whitespace-nowrap text-sm text-ink-soft">
           {navItems.map(item => (
-            <button
+            <a
               key={item.id}
-              type="button"
-              onClick={() => handleNavClick(item.id)}
+              href={item.path}
+              onClick={e => handleNavClick(e, item.path)}
+              aria-current={activeSection === item.id ? 'location' : undefined}
               className={`py-1 border-b-2 transition-colors ${
                 activeSection === item.id
                   ? 'border-primary text-ink'
@@ -125,7 +119,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               {item.label}
-            </button>
+            </a>
           ))}
         </nav>
 
@@ -161,14 +155,14 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="xl:hidden border-t border-line bg-paper px-4 pb-5">
           <nav className="flex flex-col py-2">
             {navItems.map(item => (
-              <button
+              <a
                 key={item.id}
-                type="button"
-                onClick={() => handleNavClick(item.id)}
+                href={item.path}
+                onClick={e => handleNavClick(e, item.path)}
                 className="text-left py-3 text-base text-ink border-b border-line/70"
               >
                 {item.label}
-              </button>
+              </a>
             ))}
             <button
               type="button"

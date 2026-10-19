@@ -32,6 +32,8 @@ import {
 
 import { MessageCircle } from 'lucide-react';
 import { whatsappLink } from './utils/whatsapp';
+import { routeForPath } from './routes';
+import { currentSectionPath, getPendingPath, scrollToPath } from './navigation';
 
 export default function App() {
   const [clinicInfo, setClinicInfo] = useState<ClinicInfo>(INITIAL_CLINIC_INFO);
@@ -40,7 +42,7 @@ export default function App() {
   const [testimonials, setTestimonials] = useState<Testimonial[]>(INITIAL_TESTIMONIALS);
   const [faqs, setFaqs] = useState<FAQItem[]>(INITIAL_FAQS);
 
-  const [activeSection, setActiveSection] = useState('home');
+  const [activeSection, setActiveSection] = useState(() => routeForPath(window.location.pathname)?.id ?? 'home');
 
   // Modals state
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
@@ -85,6 +87,42 @@ export default function App() {
     loadBackendData();
   }, []);
 
+  // Deep links (/about, /faq, ...) open at their section; back/forward scroll between sections.
+  useEffect(() => {
+    if (routeForPath(window.location.pathname)?.id !== 'home') {
+      window.history.scrollRestoration = 'manual';
+      requestAnimationFrame(() => scrollToPath(window.location.pathname, 'instant'));
+    }
+    const onPopState = () => scrollToPath(window.location.pathname);
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  // Keep the URL and the highlighted nav link in step with the section being read.
+  useEffect(() => {
+    let frame = 0;
+    const sync = () => {
+      frame = 0;
+      const path = getPendingPath() ?? currentSectionPath();
+      const route = routeForPath(path);
+      if (!route) return;
+      setActiveSection(route.id);
+      if (!getPendingPath() && window.location.pathname !== route.path) {
+        window.history.replaceState(null, '', route.path + window.location.search + window.location.hash);
+      }
+    };
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(sync);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('scrollend', sync);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('scrollend', sync);
+    };
+  }, []);
+
   // The admin dashboard has no public link; staff open it at /#admin.
   useEffect(() => {
     const syncAdminFromHash = () => setAdminDashboardOpen(window.location.hash === '#admin');
@@ -122,7 +160,6 @@ export default function App() {
       <Navbar
         clinicInfo={clinicInfo}
         activeSection={activeSection}
-        setActiveSection={setActiveSection}
         onOpenBooking={() => handleOpenBooking('Online Consultation')}
         onOpenPatientPortal={() => setPatientDashboardOpen(true)}
       />

@@ -31,7 +31,7 @@ export const ServicesGrid: React.FC<ServicesGridProps> = ({ onOpenBooking }) => 
   };
 
   return (
-    <section id="services" className="py-16 sm:py-24 bg-paper-deep/60 border-y border-line scroll-mt-24">
+    <section id="conditions" className="py-16 sm:py-24 bg-paper-deep/60 border-y border-line scroll-mt-24">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
 
         <div className="max-w-2xl">

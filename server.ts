@@ -16,6 +16,8 @@ import {
   INITIAL_TIME_SLOTS 
 } from './src/data/initialData.js';
 import type { AppointmentStatus } from './src/types.js';
+import { routeForPath } from './src/routes.js';
+import { HEAD_PLACEHOLDER, renderHead, renderRobots, renderSitemap, siteUrlFor } from './seo.js';
 
 const currentFilePath = typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : '';
 const currentDirPath = currentFilePath ? path.dirname(currentFilePath) : process.cwd();
@@ -2826,7 +2828,46 @@ app.get('/api/reports/export', (req, res) => {
   return res.send(csv);
 });
 
+// ================= SEO: ROBOTS & SITEMAP =================
+const SERVER_STARTED_AT = new Date();
+
+app.get('/robots.txt', (req, res) => {
+  res.type('text/plain').send(renderRobots(siteUrlFor(req)));
+});
+
+app.get('/sitemap.xml', (req, res) => {
+  res.type('application/xml').send(renderSitemap(siteUrlFor(req), SERVER_STARTED_AT));
+});
+
 // ================= VITE / STATIC SERVING =================
+type HtmlTemplate = (req: express.Request) => Promise<string>;
+
+function pageHandler(loadTemplate: HtmlTemplate): express.RequestHandler {
+  return async (req, res, next) => {
+    if (req.path.startsWith('/api/')) return next();
+
+    const route = routeForPath(req.path);
+    if (route && req.path !== route.path) {
+      const query = req.originalUrl.slice(req.path.length);
+      return res.redirect(301, route.path + query);
+    }
+
+    try {
+      const head = renderHead({
+        siteUrl: siteUrlFor(req),
+        clinic: store.clinicInfo,
+        doctor: store.doctor,
+        faqs: store.faqs,
+        notFound: !route,
+      });
+      const html = (await loadTemplate(req)).replace(HEAD_PLACEHOLDER, head);
+      res.status(route ? 200 : 404).type('html').send(html);
+    } catch (err) {
+      next(err);
+    }
+  };
+}
+
 async function startServer() {
   const isDev = process.env.NODE_ENV !== 'production' || !fs.existsSync(path.join(process.cwd(), 'dist', 'index.html'));
 
@@ -2834,19 +2875,22 @@ async function startServer() {
     try {
       const vite = await createViteServer({
         server: { middlewareMode: true },
-        appType: 'spa'
+        appType: 'custom'
       });
       app.use(vite.middlewares);
+      const templatePath = path.join(process.cwd(), 'index.html');
+      app.get('*', pageHandler(async req =>
+        vite.transformIndexHtml(req.originalUrl, await fs.promises.readFile(templatePath, 'utf-8'))
+      ));
       console.log('[Krishnaveni Rehab App] Vite dev middlewares mounted');
     } catch (err) {
       console.error('[Krishnaveni Rehab App] Error initializing Vite middleware:', err);
     }
   } else {
     const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    const template = fs.readFileSync(path.join(distPath, 'index.html'), 'utf-8');
+    app.use(express.static(distPath, { index: false }));
+    app.get('*', pageHandler(async () => template));
   }
 
   const server = app.listen(PORT, '0.0.0.0', () => {
