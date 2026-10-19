@@ -227,8 +227,6 @@ export default function App() {
       <AdminDashboard
         isOpen={adminDashboardOpen}
         onClose={closeAdminDashboard}
-        services={services}
-        onRefreshServices={() => {}}
         doctor={doctor}
         onDoctorUpdated={(updatedDoc) => setDoctor(updatedDoc)}
       />

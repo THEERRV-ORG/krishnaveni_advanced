@@ -635,7 +635,7 @@
       "date": "2026-10-19",
       "timeSlot": "09:00 AM - 09:45 AM",
       "durationMinutes": 45,
-      "status": "Confirmed",
+      "status": "Cancelled",
       "problemDescription": "Online Physiotherapy Consultation",
       "medicalHistory": "",
       "medicalReports": [],
@@ -653,7 +653,8 @@
       "emailDispatched": true,
       "emailFrom": "krishnavenirehab@gmail.com",
       "emailTo": "sriharsha0129@gmail.com",
-      "createdAt": "2026-10-18T17:36:22.060Z"
+      "createdAt": "2026-10-18T17:36:22.060Z",
+      "cancellationReason": "Cancelled by clinic"
     },
     {
       "id": "APT-2026-1648",
@@ -5827,6 +5828,13 @@
     }
   ],
   "activityLogs": [
+    {
+      "id": "log-1792407473537",
+      "action": "Appointment Cancelled",
+      "userEmail": "sriharsha0129@gmail.com",
+      "details": "Updated APT-2026-2613 status to Cancelled",
+      "timestamp": "2026-10-19T10:57:53.537Z"
+    },
     {
       "id": "log-1792407004586",
       "action": "Appointment Cancelled",
