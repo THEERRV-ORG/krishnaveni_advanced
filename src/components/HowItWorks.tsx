@@ -44,7 +44,7 @@ export const HowItWorks: React.FC = () => {
           ))}
         </ol>
 
-        <div className="mt-14 bg-primary-wash rounded-md p-6 sm:p-8 grid grid-cols-1 md:grid-cols-12 gap-6">
+        <div className="mt-14 bg-primary-wash/50 border border-black/10 rounded-md p-6 sm:p-8 grid grid-cols-1 md:grid-cols-12 gap-6">
           <h3 className="md:col-span-4 text-xl text-ink">What to have ready</h3>
           <ul className="md:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-ink">
             {CHECKLIST.map(item => (

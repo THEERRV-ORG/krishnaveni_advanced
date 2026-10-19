@@ -94,7 +94,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           aria-label="Krishnaveni Advanced Physiotherapy & Rehabilitation Services — home"
           className="flex items-center gap-3 text-left min-w-0"
         >
-          <img src={clinicLogo} alt="" className="w-11 h-11 shrink-0 rounded-xl object-contain bg-white border border-line" />
+          <img src={clinicLogo} alt="" className="w-14 h-14 shrink-0 rounded-xl object-contain bg-white border border-line" />
           <span className="leading-tight min-w-0">
             <span className="block text-base sm:text-lg font-bold tracking-tight text-primary-deep">
               KRISHNAVENI <span className="text-accent">ADVANCED</span>
@@ -105,17 +105,17 @@ export const Navbar: React.FC<NavbarProps> = ({
           </span>
         </a>
 
-        <nav aria-label="Main" className="hidden xl:flex shrink-0 items-center gap-5 whitespace-nowrap text-sm text-ink-soft">
+        <nav aria-label="Main" className="hidden xl:flex shrink-0 items-center gap-1 whitespace-nowrap text-sm text-ink-soft">
           {navItems.map(item => (
             <a
               key={item.id}
               href={item.path}
               onClick={e => handleNavClick(e, item.path)}
               aria-current={activeSection === item.id ? 'location' : undefined}
-              className={`py-1 border-b-2 transition-colors ${
+              className={`px-4 py-1.5 rounded-lg transition-all duration-200 ${
                 activeSection === item.id
-                  ? 'border-primary text-ink'
-                  : 'border-transparent hover:text-ink'
+                  ? 'bg-primary text-paper font-semibold'
+                  : 'hover:bg-primary hover:text-paper'
               }`}
             >
               {item.label}
@@ -127,7 +127,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           <button
             type="button"
             onClick={onOpenPatientPortal}
-            className="text-sm text-ink-soft hover:text-ink"
+            className="text-sm text-ink-soft px-4 py-1.5 rounded-lg transition-all duration-200 hover:bg-ink-soft hover:text-paper"
           >
             Track booking
           </button>

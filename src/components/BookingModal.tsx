@@ -46,6 +46,27 @@ function isValidIndianPhone(phone: string): boolean {
   return /^[6-9]\d{9}$/.test(phone.replace(/\s/g, ''));
 }
 
+function validateName(value: string): string {
+  const t = value.trim();
+  if (!t) return 'Full name is required.';
+  if (t.length < 3) return 'Name must be at least 3 characters.';
+  if (!/^[a-zA-ZÀ-ɏ\s'.'-]+$/.test(t)) return 'Name should contain letters only.';
+  if (/^(.)\1+$/i.test(t.replace(/\s/g, ''))) return 'Please enter your real name.';
+  return '';
+}
+
+function validateAge(value: number | ''): string {
+  if (value === '') return '';
+  if (value < 1 || value > 120) return 'Enter a valid age between 1 and 120.';
+  return '';
+}
+
+function validateEmail(value: string): string {
+  if (!value.trim()) return 'Email is required.';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) return 'Enter a valid email address.';
+  return '';
+}
+
 function formatLongDate(iso: string): string {
   const date = new Date(`${iso}T00:00:00`);
   if (Number.isNaN(date.getTime())) return iso;
@@ -112,6 +133,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [uploadingReport, setUploadingReport] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
+  const [nameError, setNameError] = useState('');
+  const [ageError, setAgeError] = useState('');
+  const [emailError, setEmailError] = useState('');
+
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -126,6 +151,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     setStep(1);
     setErrorMsg(null);
     setPhoneError(null);
+    setNameError('');
+    setAgeError('');
+    setEmailError('');
     setPatientName('');
     setPatientAge('');
     setPatientGender('');
@@ -196,9 +224,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   };
 
   const handleSubmitBooking = async () => {
-    if (!patientName.trim()) { setErrorMsg('Enter your name.'); return; }
-    if (!isValidIndianPhone(patientPhone)) { setErrorMsg('Enter a valid 10-digit Indian mobile number.'); return; }
-    if (!patientEmail.trim()) { setErrorMsg('Enter your email address.'); return; }
+    const nErr = validateName(patientName);
+    const aErr = validateAge(patientAge);
+    const pErr = patientPhone ? (isValidIndianPhone(patientPhone) ? '' : 'Indian mobile numbers start with 6, 7, 8 or 9.') : 'Mobile number is required.';
+    const eErr = validateEmail(patientEmail);
+    setNameError(nErr);
+    setAgeError(aErr);
+    setPhoneError(pErr || null);
+    setEmailError(eErr);
+    if (nErr || aErr || pErr || eErr) return;
 
     setErrorMsg(null);
     setSubmitting(true);
@@ -317,8 +351,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                           selectedSlot === slot.timeString
                             ? 'bg-primary border-primary text-paper'
                             : slot.isAvailable
-                              ? 'bg-white border-line text-ink hover:border-primary'
-                              : 'bg-transparent border-line/60 text-ink-mute line-through cursor-not-allowed'
+                              ? 'bg-green-50 border-green-300 text-green-800 hover:bg-green-100 hover:border-green-400'
+                              : 'bg-gray-100 border-gray-200 text-gray-400 opacity-60 cursor-not-allowed'
                         }`}
                       >
                         {slot.timeString}
@@ -338,7 +372,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
               <div>
                 <label htmlFor="p-name" className={labelClass}>Full name</label>
-                <input id="p-name" type="text" autoComplete="name" value={patientName} onChange={e => setPatientName(e.target.value)} className={inputClass} />
+                <input
+                  id="p-name"
+                  type="text"
+                  autoComplete="name"
+                  value={patientName}
+                  onChange={e => { setPatientName(e.target.value); if (nameError) setNameError(validateName(e.target.value)); }}
+                  onBlur={() => setNameError(validateName(patientName))}
+                  className={`${inputClass} ${nameError ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''}`}
+                />
+                {nameError && <p className="mt-1 text-sm text-red-600">{nameError}</p>}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
@@ -350,9 +393,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                     min={1}
                     max={120}
                     value={patientAge}
-                    onChange={e => setPatientAge(e.target.value ? Number(e.target.value) : '')}
-                    className={inputClass}
+                    onChange={e => { const v = e.target.value ? Number(e.target.value) : ''; setPatientAge(v); if (ageError) setAgeError(validateAge(v)); }}
+                    onBlur={() => setAgeError(validateAge(patientAge))}
+                    className={`${inputClass} ${ageError ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''}`}
                   />
+                  {ageError && <p className="mt-1 text-sm text-red-600">{ageError}</p>}
                 </div>
                 <div>
                   <label htmlFor="p-gender" className={labelClass}>Gender <span className="text-ink-mute">(optional)</span></label>
@@ -389,7 +434,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
               <div>
                 <label htmlFor="p-email" className={labelClass}>Email</label>
-                <input id="p-email" type="email" autoComplete="email" value={patientEmail} onChange={e => setPatientEmail(e.target.value)} className={inputClass} />
+                <input
+                  id="p-email"
+                  type="email"
+                  autoComplete="email"
+                  value={patientEmail}
+                  onChange={e => { setPatientEmail(e.target.value); if (emailError) setEmailError(validateEmail(e.target.value)); }}
+                  onBlur={() => setEmailError(validateEmail(patientEmail))}
+                  className={`${inputClass} ${emailError ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''}`}
+                />
+                {emailError && <p className="mt-1 text-sm text-red-600">{emailError}</p>}
               </div>
 
               <div>

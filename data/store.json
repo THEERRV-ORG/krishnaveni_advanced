@@ -269,6 +269,41 @@
   ],
   "appointments": [
     {
+      "id": "APT-2026-1497",
+      "patientId": "pat-1792397969430",
+      "patientName": "Kumar",
+      "patientAge": 30,
+      "patientGender": "Male",
+      "patientPhone": "9345671235",
+      "patientEmail": "abc@gmail.com",
+      "patientAddress": "N/A",
+      "serviceId": "online-consult",
+      "doctorName": "Dr. P. Sai Tejaswini",
+      "consultationType": "Online Consultation",
+      "date": "2026-10-19",
+      "timeSlot": "03:00 PM - 03:45 PM",
+      "durationMinutes": 45,
+      "status": "Confirmed",
+      "problemDescription": "Online Physiotherapy Consultation",
+      "medicalHistory": "",
+      "medicalReports": [],
+      "amountPaid": 0,
+      "paymentStatus": "Paid",
+      "razorpayOrderId": "order_d1r462jq",
+      "razorpayPaymentId": "pay_1792397969430",
+      "meetingLink": "https://meet.jit.si/KrishnaveniRehab_DrSaiTejaswini_Consult",
+      "meetingPassword": "KPV-969",
+      "invoiceNumber": "INV-2026-8243",
+      "whatsappDispatched": true,
+      "whatsappFrom": "+91 94906 05809",
+      "whatsappTo": "9345671235",
+      "whatsappStatus": "Delivered",
+      "emailDispatched": true,
+      "emailFrom": "krishnavenirehab@gmail.com",
+      "emailTo": "abc@gmail.com",
+      "createdAt": "2026-10-19T08:19:29.430Z"
+    },
+    {
       "id": "APT-2026-6567",
       "patientId": "pat-1792350446241",
       "patientName": "sam",
@@ -3375,6 +3410,21 @@
   ],
   "payments": [
     {
+      "id": "PAY-1792397969430",
+      "appointmentId": "APT-2026-1497",
+      "patientName": "Kumar",
+      "amount": 0,
+      "gstAmount": 0,
+      "totalAmount": 0,
+      "currency": "INR",
+      "status": "Paid",
+      "razorpayPaymentId": "pay_1792397969430",
+      "razorpayOrderId": "order_d1r462jq",
+      "paymentMethod": "Pending",
+      "createdAt": "2026-10-19T08:19:29.430Z",
+      "invoiceNumber": "INV-2026-8243"
+    },
+    {
       "id": "PAY-1792350446241",
       "appointmentId": "APT-2026-6567",
       "patientName": "sam",
@@ -5725,6 +5775,13 @@
     }
   ],
   "activityLogs": [
+    {
+      "id": "log-1792397969430",
+      "action": "New Appointment Booked",
+      "userEmail": "abc@gmail.com",
+      "details": "Booked undefined on 2026-10-19 at 03:00 PM - 03:45 PM",
+      "timestamp": "2026-10-19T08:19:29.430Z"
+    },
     {
       "id": "log-1792350446241",
       "action": "New Appointment Booked",

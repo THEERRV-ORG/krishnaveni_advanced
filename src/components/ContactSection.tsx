@@ -10,12 +10,32 @@ interface ContactSectionProps {
 const inputClass =
   'w-full bg-white border border-line rounded-md px-3 py-2.5 text-ink placeholder:text-ink-mute focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary';
 
+function validateName(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.length < 3) return 'Name must be at least 3 characters.';
+  if (!/^[a-zA-ZÀ-ɏ\s'.'-]+$/.test(trimmed)) return 'Name should contain letters only.';
+  if (/^(.)\1+$/i.test(trimmed.replace(/\s/g, ''))) return 'Please enter your real name.';
+  return '';
+}
+
 export const ContactSection: React.FC<ContactSectionProps> = ({ clinicInfo }) => {
   const [name, setName] = useState('');
+  const [nameError, setNameError] = useState('');
   const [message, setMessage] = useState('');
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setName(e.target.value);
+    if (nameError) setNameError(validateName(e.target.value));
+  };
+
+  const handleNameBlur = () => {
+    setNameError(validateName(name));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const error = validateName(name);
+    if (error) { setNameError(error); return; }
     const text = `Hello Dr. Tejaswini, this is ${name.trim()}.\n\n${message.trim()}`;
     window.open(whatsappLink(clinicInfo.whatsapp, text), '_blank', 'noopener,noreferrer');
   };
@@ -77,9 +97,12 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ clinicInfo }) =>
               type="text"
               required
               value={name}
-              onChange={e => setName(e.target.value)}
-              className={inputClass}
+              onChange={handleNameChange}
+              onBlur={handleNameBlur}
+              aria-describedby={nameError ? 'name-error' : undefined}
+              className={`${inputClass} ${nameError ? 'border-red-400 focus:ring-red-300 focus:border-red-400' : ''}`}
             />
+            {nameError && <p id="name-error" className="mt-1 text-sm text-red-500">{nameError}</p>}
           </div>
           <div>
             <label htmlFor="contact-message" className="block text-sm text-ink-soft mb-1">Your question</label>
