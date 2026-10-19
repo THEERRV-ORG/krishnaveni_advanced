@@ -217,6 +217,7 @@ export default function App() {
             onClose={closeAdminDashboard}
             doctor={doctor}
             maxPerSlot={siteContent.schedule.maxPerSlot}
+            onMaxPerSlotChanged={count => setSiteContent(c => ({ ...c, schedule: { ...c.schedule, maxPerSlot: count } }))}
             onDoctorUpdated={(updatedDoc) => setDoctor(updatedDoc)}
           />
         </Suspense>

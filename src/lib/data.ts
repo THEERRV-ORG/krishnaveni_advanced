@@ -277,6 +277,25 @@ export async function setDefaultMeetingLink(link: string): Promise<void> {
   await setDoc(doc(db(), 'settings', 'clinic'), { googleMeetLink: link, teleConsultationLink: link }, { merge: true });
 }
 
+export const MAX_PATIENTS_PER_SLOT = 5;
+
+export async function getMaxPerSlot(): Promise<number | null> {
+  const snap = await getDoc(doc(db(), 'settings', 'schedule'));
+  return snap.exists() ? Number((snap.data() as Schedule).maxPerSlot) : null;
+}
+
+/** Patients allowed in one time slot. Existing bookings are kept if the number goes down. */
+export async function setMaxPerSlot(count: number): Promise<void> {
+  if (!Number.isInteger(count) || count < 1 || count > MAX_PATIENTS_PER_SLOT) {
+    throw new BookingError(`Choose a number from 1 to ${MAX_PATIENTS_PER_SLOT}.`);
+  }
+  const ref = doc(db(), 'settings', 'schedule');
+  if (!(await getDoc(ref)).exists()) {
+    throw new BookingError('Run first-time setup before changing this.');
+  }
+  await setDoc(ref, { maxPerSlot: count }, { merge: true });
+}
+
 export async function saveDoctorPhoto(dataUrl: string): Promise<void> {
   await setDoc(doc(db(), 'media', 'doctorPhoto'), { dataUrl, updatedAt: serverTimestamp() });
 }

@@ -29,6 +29,9 @@ import {
   listAppointments,
   reopenAppointment,
   saveDoctorPhoto,
+  getMaxPerSlot,
+  setMaxPerSlot,
+  MAX_PATIENTS_PER_SLOT,
   seedSiteContent,
   setDefaultMeetingLink,
   updateAppointmentFields,
@@ -39,6 +42,7 @@ interface AdminDashboardProps {
   onClose: () => void;
   doctor?: Doctor;
   maxPerSlot: number;
+  onMaxPerSlotChanged?: (count: number) => void;
   onDoctorUpdated?: (doctor: Doctor) => void;
 }
 
@@ -97,7 +101,7 @@ const StatusLabel: React.FC<{ status: string }> = ({ status }) => {
   );
 };
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose, doctor, maxPerSlot, onDoctorUpdated }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose, doctor, maxPerSlot, onMaxPerSlotChanged, onDoctorUpdated }) => {
   // 'checking' until Firebase reports whether a Google session exists and the server accepts it.
   const [authState, setAuthState] = useState<'checking' | 'signedOut' | 'signedIn'>('checking');
   const [adminEmail, setAdminEmail] = useState('');
@@ -460,6 +464,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
               <Settings
                 doctor={doctor}
                 onDoctorUpdated={onDoctorUpdated}
+                onMaxPerSlotChanged={onMaxPerSlotChanged}
                 adminEmail={adminEmail}
               />
             )}
@@ -731,6 +736,7 @@ interface SettingsProps {
   doctor?: Doctor;
   onDoctorUpdated?: (doctor: Doctor) => void;
   adminEmail: string;
+  onMaxPerSlotChanged?: (count: number) => void;
 }
 
 type FormState = { busy: boolean; message: string; error: boolean };
@@ -741,7 +747,7 @@ const failure = (err: unknown, fallback: string): FormState => ({
   message: adminErrorMessage(err, fallback),
 });
 
-const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, adminEmail }) => {
+const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, adminEmail, onMaxPerSlotChanged }) => {
   const fileRef = useRef<HTMLInputElement>(null);
   const [photoState, setPhotoState] = useState<FormState>(idle);
   const [defaultLink, setDefaultLink] = useState('');
@@ -797,6 +803,7 @@ const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, adminEmail
   return (
     <div className="border-t border-line">
       <SetupSection className={section} />
+      <SlotCapacitySection className={section} onChanged={onMaxPerSlotChanged} />
 
       <section className={section}>
         <div className="md:col-span-4">
@@ -924,5 +931,92 @@ const SetupSection: React.FC<{ className: string }> = ({ className }) => {
         )}
       </div>
     </section>
+  );
+};
+
+/** How many patients can book the same time slot. Read by the booking form and the security rules. */
+const SlotCapacitySection: React.FC<{ className: string; onChanged?: (count: number) => void }> = ({ className, onChanged }) => {
+  const [saved, setSaved] = useState<number | null>(null);
+  const [value, setValue] = useState(1);
+  const [state, setState] = useState<FormState>(idle);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    getMaxPerSlot()
+      .then(count => {
+        if (count !== null) {
+          setSaved(count);
+          setValue(count);
+        }
+        setLoaded(true);
+      })
+      .catch(err => {
+        setState(failure(err, 'The current setting could not be loaded.'));
+        setLoaded(true);
+      });
+  }, []);
+
+  // Before first-time setup there is no schedule to change.
+  if (loaded && saved === null && !state.error) return null;
+
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setState({ busy: true, message: '', error: false });
+    try {
+      await setMaxPerSlot(value);
+      setSaved(value);
+      onChanged?.(value);
+      setState({
+        busy: false,
+        error: false,
+        message: value === 1 ? 'Saved. Each time can now be booked by one patient.' : `Saved. Each time can now be booked by up to ${value} patients.`,
+      });
+    } catch (err) {
+      setState(failure(err, 'The setting could not be saved.'));
+    }
+  };
+
+  return (
+    <form onSubmit={save} className={className}>
+      <div className="md:col-span-4">
+        <h2 className="text-xl text-ink">Patients per time slot</h2>
+        <p className="mt-1 text-sm text-ink-soft">
+          How many patients can book the same time. Lowering it keeps existing bookings; it only limits new ones.
+        </p>
+      </div>
+      <div className="md:col-span-8">
+        <div className="flex flex-wrap items-center gap-2" role="radiogroup" aria-label="Patients per time slot">
+          {Array.from({ length: MAX_PATIENTS_PER_SLOT }, (_, i) => i + 1).map(n => (
+            <button
+              key={n}
+              type="button"
+              role="radio"
+              aria-checked={value === n}
+              disabled={!loaded}
+              onClick={() => setValue(n)}
+              className={`w-11 h-11 rounded-md border text-base transition-colors ${
+                value === n ? 'bg-primary border-primary text-paper font-semibold' : 'bg-white border-line text-ink hover:border-primary'
+              }`}
+            >
+              {n}
+            </button>
+          ))}
+          <button
+            type="submit"
+            disabled={!loaded || state.busy || value === saved}
+            className="ml-2 inline-flex items-center gap-1.5 bg-primary hover:bg-primary-deep text-paper text-sm font-semibold px-4 py-2.5 rounded-md disabled:opacity-50"
+          >
+            {state.busy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Save
+          </button>
+        </div>
+        {saved !== null && (
+          <p className="mt-2 text-sm text-ink-mute">Currently {saved === 1 ? '1 patient' : `${saved} patients`} per time.</p>
+        )}
+        {state.message && (
+          <p className={`mt-2 text-sm ${state.error ? 'text-red-700' : 'text-primary'}`}>{state.message}</p>
+        )}
+      </div>
+    </form>
   );
 };
