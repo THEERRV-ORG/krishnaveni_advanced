@@ -221,6 +221,7 @@ export default function App() {
         isOpen={patientDashboardOpen}
         onClose={() => setPatientDashboardOpen(false)}
         onBookNew={() => handleOpenBooking('Online Consultation')}
+        whatsapp={clinicInfo.whatsapp}
       />
 
       <AdminDashboard

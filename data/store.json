@@ -269,39 +269,40 @@
   ],
   "appointments": [
     {
-      "id": "APT-2026-3658",
-      "patientId": "pat-1792405995779",
-      "patientName": "Watch Test",
+      "id": "APT-2026-4628",
+      "patientId": "pat-1792406974173",
+      "patientName": "samuel",
       "patientAge": 30,
       "patientGender": "Male",
-      "patientPhone": "9876543210",
-      "patientEmail": "watch@test.com",
+      "patientPhone": "9999999999",
+      "patientEmail": "abc@gmail.com",
       "patientAddress": "N/A",
       "serviceId": "online-consult",
       "doctorName": "Dr. P. Sai Tejaswini",
       "consultationType": "Online Consultation",
-      "date": "2026-10-21",
-      "timeSlot": "08:00 PM - 08:45 PM",
+      "date": "2026-10-19",
+      "timeSlot": "05:00 PM - 05:45 PM",
       "durationMinutes": 45,
-      "status": "Confirmed",
-      "problemDescription": "",
+      "status": "Cancelled",
+      "problemDescription": "Online Physiotherapy Consultation",
       "medicalHistory": "",
       "medicalReports": [],
       "amountPaid": 0,
       "paymentStatus": "Paid",
-      "razorpayOrderId": "order_ywb14n8o",
-      "razorpayPaymentId": "pay_1792405995779",
+      "razorpayOrderId": "order_elsmia0p",
+      "razorpayPaymentId": "pay_1792406974173",
       "meetingLink": "https://meet.jit.si/KrishnaveniRehab_DrSaiTejaswini_Consult",
-      "meetingPassword": "KPV-477",
-      "invoiceNumber": "INV-2026-8324",
+      "meetingPassword": "KPV-796",
+      "invoiceNumber": "INV-2026-8072",
       "whatsappDispatched": true,
       "whatsappFrom": "+91 94906 05809",
-      "whatsappTo": "9876543210",
+      "whatsappTo": "9999999999",
       "whatsappStatus": "Delivered",
       "emailDispatched": true,
       "emailFrom": "krishnavenirehab@gmail.com",
-      "emailTo": "watch@test.com",
-      "createdAt": "2026-10-19T10:33:15.779Z"
+      "emailTo": "abc@gmail.com",
+      "createdAt": "2026-10-19T10:49:34.173Z",
+      "cancellationReason": "Cancelled by patient from portal"
     },
     {
       "id": "APT-2026-1497",
@@ -353,7 +354,7 @@
       "date": "2026-10-19",
       "timeSlot": "03:00 PM - 03:45 PM",
       "durationMinutes": 45,
-      "status": "Confirmed",
+      "status": "Cancelled",
       "problemDescription": "Online Physiotherapy Consultation",
       "medicalHistory": "",
       "medicalReports": [],
@@ -371,7 +372,8 @@
       "emailDispatched": true,
       "emailFrom": "krishnavenirehab@gmail.com",
       "emailTo": "abc@gmail.com",
-      "createdAt": "2026-10-18T19:07:26.241Z"
+      "createdAt": "2026-10-18T19:07:26.241Z",
+      "cancellationReason": "Cancelled by patient from portal"
     },
     {
       "id": "APT-2026-7671",
@@ -3445,19 +3447,19 @@
   ],
   "payments": [
     {
-      "id": "PAY-1792405995780",
-      "appointmentId": "APT-2026-3658",
-      "patientName": "Watch Test",
+      "id": "PAY-1792406974173",
+      "appointmentId": "APT-2026-4628",
+      "patientName": "samuel",
       "amount": 0,
       "gstAmount": 0,
       "totalAmount": 0,
       "currency": "INR",
       "status": "Paid",
-      "razorpayPaymentId": "pay_1792405995779",
-      "razorpayOrderId": "order_ywb14n8o",
+      "razorpayPaymentId": "pay_1792406974173",
+      "razorpayOrderId": "order_elsmia0p",
       "paymentMethod": "Pending",
-      "createdAt": "2026-10-19T10:33:15.780Z",
-      "invoiceNumber": "INV-2026-8324"
+      "createdAt": "2026-10-19T10:49:34.173Z",
+      "invoiceNumber": "INV-2026-8072"
     },
     {
       "id": "PAY-1792397969430",
@@ -5826,11 +5828,25 @@
   ],
   "activityLogs": [
     {
-      "id": "log-1792405995780",
+      "id": "log-1792407004586",
+      "action": "Appointment Cancelled",
+      "userEmail": "abc@gmail.com",
+      "details": "Updated APT-2026-4628 status to Cancelled",
+      "timestamp": "2026-10-19T10:50:04.586Z"
+    },
+    {
+      "id": "log-1792406974173",
       "action": "New Appointment Booked",
-      "userEmail": "watch@test.com",
-      "details": "Booked undefined on 2026-10-21 at 08:00 PM - 08:45 PM",
-      "timestamp": "2026-10-19T10:33:15.780Z"
+      "userEmail": "abc@gmail.com",
+      "details": "Booked undefined on 2026-10-19 at 05:00 PM - 05:45 PM",
+      "timestamp": "2026-10-19T10:49:34.173Z"
+    },
+    {
+      "id": "log-1792406813460",
+      "action": "Appointment Cancelled",
+      "userEmail": "abc@gmail.com",
+      "details": "Updated APT-2026-6567 status to Cancelled",
+      "timestamp": "2026-10-19T10:46:53.460Z"
     },
     {
       "id": "log-1792397969430",
