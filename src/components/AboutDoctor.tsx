@@ -1,6 +1,5 @@
 import React from 'react';
 import { Doctor } from '../types';
-import aboutBg from '../assets/images/physio_about_bg3.webp';
 
 interface AboutDoctorProps {
   doctor: Doctor;
@@ -21,14 +20,8 @@ export const AboutDoctor: React.FC<AboutDoctorProps> = ({ doctor, onOpenBooking 
   return (
     <section
       id="about"
-      className="py-16 sm:py-24 scroll-mt-24 relative"
-      style={{
-        backgroundImage: `url(${aboutBg})`,
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-      }}
+      className="py-16 sm:py-24 scroll-mt-24 relative bg-paper"
     >
-      <div className="absolute inset-0 bg-paper/90" />
       <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-12">
 
         <div className="lg:col-span-6 min-w-0 flex flex-col lg:pr-8">
