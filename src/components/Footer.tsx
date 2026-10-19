@@ -25,7 +25,9 @@ export const Footer: React.FC<FooterProps> = ({ clinicInfo, onOpenBooking, onOpe
 
         <div className="md:col-span-5">
           <div className="flex items-center gap-4">
-            <img src="/apple-touch-icon.png" alt="" width={56} height={56} className="w-14 h-14 shrink-0" />
+            <span className="w-14 h-14 shrink-0 rounded-full bg-white flex items-center justify-center">
+              <img src="/logo-mark.png" alt="" width={44} height={44} className="w-11 h-11 object-contain" />
+            </span>
             <div>
               <p className="font-serif text-2xl leading-tight text-white">Krishnaveni Advanced</p>
               <p className="text-sm text-paper/70">Physiotherapy &amp; Rehabilitation Services</p>

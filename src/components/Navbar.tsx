@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Menu, X, Phone } from 'lucide-react';
 import { ClinicInfo } from '../types';
-import clinicLogo from '../assets/images/krishnaveni_physio_logo_1785932195343.jpg';
 import { SECTION_ROUTES } from '../routes';
 import { handleSectionLinkClick } from '../navigation';
 
@@ -94,7 +93,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           aria-label="Krishnaveni Advanced Physiotherapy & Rehabilitation Services — home"
           className="flex items-center gap-3 text-left min-w-0"
         >
-          <img src={clinicLogo} alt="" className="w-14 h-14 shrink-0 rounded-xl object-contain bg-white border border-line" />
+          <img src="/logo-mark.png" alt="" width={56} height={56} className="w-14 h-14 shrink-0 object-contain" />
           <span className="leading-tight min-w-0">
             <span className="block text-base sm:text-lg font-bold tracking-tight text-primary-deep">
               KRISHNAVENI <span className="text-accent">ADVANCED</span>

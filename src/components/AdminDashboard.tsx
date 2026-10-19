@@ -246,7 +246,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
       <header className="shrink-0 border-b border-line bg-paper">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
-            <img src="/apple-touch-icon.png" alt="" width={36} height={36} className="w-9 h-9 shrink-0" />
+            <img src="/logo-mark.png" alt="" width={40} height={40} className="w-10 h-10 shrink-0 object-contain" />
             <div className="min-w-0">
               <p className="font-serif text-lg leading-tight text-ink truncate">Clinic admin</p>
               <p className="text-xs text-ink-mute truncate">Krishnaveni Advanced Physiotherapy &amp; Rehabilitation Services</p>
