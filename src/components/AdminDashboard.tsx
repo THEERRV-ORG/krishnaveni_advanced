@@ -14,6 +14,7 @@ import {
 import { Appointment, Doctor } from '../types';
 import { whatsappLink } from '../utils/whatsapp';
 import { DoctorPortrait } from './DoctorPortrait';
+import { useScrollLock } from '../hooks/useScrollLock';
 import {
   adminErrorMessage,
   isFirebaseConfigured,
@@ -102,6 +103,7 @@ const StatusLabel: React.FC<{ status: string }> = ({ status }) => {
 };
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose, doctor, maxPerSlot, onMaxPerSlotChanged, onDoctorUpdated }) => {
+  useScrollLock(isOpen);
   // 'checking' until Firebase reports whether a Google session exists and the server accepts it.
   const [authState, setAuthState] = useState<'checking' | 'signedOut' | 'signedIn'>('checking');
   const [adminEmail, setAdminEmail] = useState('');
@@ -291,7 +293,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
         )}
       </header>
 
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 overflow-y-auto overscroll-contain">
         {!signedIn ? (
           <div className="max-w-sm mx-auto px-4 py-16">
             <span className="band mb-5" />

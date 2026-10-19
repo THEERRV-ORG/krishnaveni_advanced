@@ -3,6 +3,7 @@ import { AlertCircle, ArrowLeft, ExternalLink, Loader2, Video, X } from 'lucide-
 import { Appointment } from '../types';
 import { whatsappLink } from '../utils/whatsapp';
 import { getBookingById } from '../lib/data';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 interface PatientDashboardProps {
   isOpen: boolean;
@@ -31,6 +32,7 @@ function formatLongDate(iso: string): string {
 }
 
 export const PatientDashboard: React.FC<PatientDashboardProps> = ({ isOpen, onClose, onBookNew, whatsapp }) => {
+  useScrollLock(isOpen);
   const [bookingId, setBookingId] = useState('');
   const [lookupError, setLookupError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -91,7 +93,7 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({ isOpen, onCl
           </button>
         </div>
 
-        <div className="px-6 py-8 overflow-y-auto">
+        <div className="px-6 py-8 overflow-y-auto overscroll-contain">
           {!booking ? (
             <>
               <form onSubmit={handleSubmit}>

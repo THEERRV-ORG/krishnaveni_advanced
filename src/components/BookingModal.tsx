@@ -13,6 +13,7 @@ import {
 import { Service, ConsultationType, TimeSlot, Appointment } from '../types';
 import { BookingError, createBooking, getTakenSeats, type SiteContent } from '../lib/data';
 import { whatsappLink } from '../utils/whatsapp';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 function getTodayDateString(): string {
   const now = new Date();
@@ -99,6 +100,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   onClose,
   onBookingComplete,
 }) => {
+  useScrollLock(isOpen);
   const [step, setStep] = useState<number>(1);
 
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateString());
@@ -293,7 +295,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           })}
         </ol>
 
-        <div className="overflow-y-auto flex-1 px-6 py-6">
+        <div className="overflow-y-auto overscroll-contain flex-1 px-6 py-6">
 
           {step === 1 && (
             <div className="space-y-6">

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { DepartmentInfo } from '../types';
 import { CLINICAL_DEPARTMENTS } from '../data/departmentsData';
+import { useScrollLock } from '../hooks/useScrollLock';
 
 interface ServicesGridProps {
   onOpenBooking: (preloadedIssue?: string) => void;
@@ -19,6 +20,7 @@ const BOOK_LABEL: Record<string, string> = {
 export const ServicesGrid: React.FC<ServicesGridProps> = ({ onOpenBooking }) => {
   const [selected, setSelected] = useState<string>('All');
   const [activeDept, setActiveDept] = useState<DepartmentInfo | null>(null);
+  useScrollLock(activeDept !== null);
 
   const tabs = ['All', ...CLINICAL_DEPARTMENTS.map(d => d.shortCode)];
   const visible = selected === 'All'
@@ -113,7 +115,7 @@ export const ServicesGrid: React.FC<ServicesGridProps> = ({ onOpenBooking }) => 
               </button>
             </div>
 
-            <div className="px-6 sm:px-8 py-6 overflow-y-auto space-y-10">
+            <div className="px-6 sm:px-8 py-6 overflow-y-auto overscroll-contain space-y-10">
               <p className="text-[17px] leading-relaxed text-ink-soft">{activeDept.overview}</p>
 
               <div>
