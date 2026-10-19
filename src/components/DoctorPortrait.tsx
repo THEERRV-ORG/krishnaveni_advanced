@@ -4,9 +4,11 @@ import { Doctor } from '../types';
 interface DoctorPortraitProps {
   doctor: Doctor;
   className?: string;
+  /** Stand-in image shown until the clinic uploads a photo; without it, initials are shown. */
+  placeholderSrc?: string;
 }
 
-// Only a photo uploaded by the clinic from the admin dashboard is shown; never a stock image.
+// A photo uploaded by the clinic from the admin dashboard always wins over any placeholder.
 function hasClinicPhoto(doctor: Doctor): boolean {
   return Boolean(doctor.avatarUrl && doctor.avatarUrl.startsWith('data:image/'));
 }
@@ -21,12 +23,22 @@ function initials(name: string): string {
     .join('');
 }
 
-export const DoctorPortrait: React.FC<DoctorPortraitProps> = ({ doctor, className = '' }) => {
+export const DoctorPortrait: React.FC<DoctorPortraitProps> = ({ doctor, className = '', placeholderSrc }) => {
   if (hasClinicPhoto(doctor)) {
     return (
       <img
         src={doctor.avatarUrl}
         alt={`Portrait of ${doctor.name}`}
+        className={`object-cover object-top bg-paper-deep ${className}`}
+      />
+    );
+  }
+
+  if (placeholderSrc) {
+    return (
+      <img
+        src={placeholderSrc}
+        alt={`${doctor.name} — photo coming soon`}
         className={`object-cover object-top bg-paper-deep ${className}`}
       />
     );

@@ -3,6 +3,7 @@ import { ClinicInfo, Doctor } from '../types';
 import { whatsappLink } from '../utils/whatsapp';
 import { DoctorPortrait } from './DoctorPortrait';
 import heroBg from '../assets/images/hero_bg.webp';
+import doctorPlaceholder from '../assets/images/doctor_placeholder.webp';
 
 interface HeroBannerProps {
   onOpenBooking: () => void;
@@ -66,7 +67,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onOpenBooking, doctor, c
         </div>
 
         <figure className="lg:col-span-5 w-full max-w-[16rem] sm:max-w-[18rem] lg:max-w-[22rem] mx-auto lg:ml-auto lg:mr-0">
-          <DoctorPortrait doctor={doctor} className="w-full aspect-square rounded-sm" />
+          <DoctorPortrait doctor={doctor} placeholderSrc={doctorPlaceholder} className="w-full aspect-square rounded-sm" />
           <figcaption className="mt-3 text-sm text-ink-soft font-serif italic text-center">
             {doctor.name}, MPT (Neurology), MIAP — {doctor.title.toLowerCase()}.
           </figcaption>
