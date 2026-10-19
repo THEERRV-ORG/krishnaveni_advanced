@@ -1,7 +1,8 @@
 import React from 'react';
 import { ClinicInfo, Doctor } from '../types';
-import { DoctorPortrait } from './DoctorPortrait';
 import { whatsappLink } from '../utils/whatsapp';
+import { DoctorPortrait } from './DoctorPortrait';
+import heroBg from '../assets/images/hero_bg.webp';
 
 interface HeroBannerProps {
   onOpenBooking: () => void;
@@ -11,8 +12,13 @@ interface HeroBannerProps {
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({ onOpenBooking, doctor, clinicInfo }) => {
   return (
-    <section className="border-b border-line">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 sm:py-6 lg:py-8 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center min-h-[calc(100vh-4rem)]">
+    <section
+      className="relative border-b border-line bg-paper"
+      style={{ backgroundImage: `url(${heroBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+    >
+      {/* A light wash over the photo so it stays in the background behind the copy. */}
+      <div aria-hidden className="absolute inset-0 bg-paper/85" />
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-12 lg:py-8 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center min-h-[calc(100vh-4rem)]">
 
         <div className="lg:col-span-7">
           <span className="band mb-6" />
