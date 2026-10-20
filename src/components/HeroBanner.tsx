@@ -1,9 +1,15 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ClinicInfo, Doctor } from '../types';
 import { whatsappLink } from '../utils/whatsapp';
 import { DoctorPortrait } from './DoctorPortrait';
 import heroBg from '../assets/images/hero_bg.webp';
+import heroSlide2 from '../assets/images/hero_slide_2.jpg';
+import heroSlide3 from '../assets/images/hero_slide_3.jpg';
 import doctorPlaceholder from '../assets/images/doctor_placeholder.webp';
+
+// Background photos that cross-fade behind the hero copy.
+const SLIDES = [heroBg, heroSlide2, heroSlide3];
+const SLIDE_MS = 6000;
 
 interface HeroBannerProps {
   onOpenBooking: () => void;
@@ -12,13 +18,36 @@ interface HeroBannerProps {
 }
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({ onOpenBooking, doctor, clinicInfo }) => {
+  const [current, setCurrent] = useState(0);
+
+  // Depends on `current` so picking a photo restarts the timer. Stays still for reduced motion
+  // and does not advance while the tab is hidden.
+  useEffect(() => {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const timer = window.setInterval(() => {
+      if (!document.hidden) setCurrent(i => (i + 1) % SLIDES.length);
+    }, SLIDE_MS);
+    return () => window.clearInterval(timer);
+  }, [current]);
+
   return (
-    <section
-      className="relative border-b border-line bg-paper"
-      style={{ backgroundImage: `url(${heroBg})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
-    >
-      {/* A light wash over the photo so it stays in the background behind the copy. */}
-      <div aria-hidden className="absolute inset-0 bg-paper/85" />
+    <section className="relative overflow-hidden border-b border-line bg-paper">
+      <div aria-hidden className="absolute inset-0">
+        {SLIDES.map((src, idx) => (
+          <img
+            key={src}
+            src={src}
+            alt=""
+            fetchPriority={idx === 0 ? 'high' : 'low'}
+            decoding="async"
+            className={`absolute inset-0 w-full h-full object-cover transition-[opacity,transform] duration-[1000ms,6000ms] ease-out ${
+              idx === current ? 'opacity-100 scale-105' : 'opacity-0 scale-100'
+            }`}
+          />
+        ))}
+      </div>
+      {/* A light wash over the photos so they stay in the background behind the copy. */}
+      <div aria-hidden className="absolute inset-0 bg-paper/80" />
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-10 sm:py-12 lg:py-8 grid grid-cols-1 lg:grid-cols-12 gap-10 lg:gap-14 items-center min-h-[calc(100vh-4rem)]">
 
         <div className="lg:col-span-7">
@@ -85,6 +114,25 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onOpenBooking, doctor, c
           </dl>
         </figure>
 
+      </div>
+
+      <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1" role="group" aria-label="Background photo">
+        {SLIDES.map((src, idx) => (
+          <button
+            key={src}
+            type="button"
+            onClick={() => setCurrent(idx)}
+            aria-label={`Show photo ${idx + 1} of ${SLIDES.length}`}
+            aria-current={idx === current ? 'true' : undefined}
+            className="p-1.5"
+          >
+            <span
+              className={`block h-2 rounded-full transition-all duration-300 ${
+                idx === current ? 'w-8 bg-primary' : 'w-2 bg-ink/25 hover:bg-ink/45'
+              }`}
+            />
+          </button>
+        ))}
       </div>
     </section>
   );
