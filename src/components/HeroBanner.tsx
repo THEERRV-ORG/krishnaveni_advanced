@@ -71,6 +71,18 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onOpenBooking, doctor, c
           <figcaption className="mt-3 text-sm text-ink-soft font-serif italic text-center">
             {doctor.name}, MPT (Neurology), MIAP — {doctor.title.toLowerCase()}.
           </figcaption>
+          <dl className="mt-5 grid grid-cols-2 divide-x divide-line border-y border-line bg-paper/70 text-center">
+            <div className="py-3 px-2">
+              <dt className="sr-only">Clinical experience</dt>
+              <dd className="font-serif text-3xl text-primary leading-none">{doctor.experienceYears}+</dd>
+              <dd className="mt-1.5 text-xs font-semibold uppercase tracking-wider text-ink-soft">Years clinical experience</dd>
+            </div>
+            <div className="py-3 px-2">
+              <dt className="sr-only">Patients recovered</dt>
+              <dd className="font-serif text-3xl text-primary leading-none">5000+</dd>
+              <dd className="mt-1.5 text-xs font-semibold uppercase tracking-wider text-ink-soft">Recovered patients</dd>
+            </div>
+          </dl>
         </figure>
 
       </div>
