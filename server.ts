@@ -7,6 +7,7 @@ import { createServer as createViteServer } from 'vite';
 import { routeForPath } from './src/routes.js';
 import { HEAD_PLACEHOLDER, renderHead, renderRobots, renderSitemap, siteUrlFor } from './seo.js';
 import { getSeoContent } from './server/siteContent.js';
+import { sendBookingEmails } from './server/bookingEmail.js';
 
 const currentFilePath = typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : '';
 const currentDirPath = currentFilePath ? path.dirname(currentFilePath) : process.cwd();
@@ -30,235 +31,20 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // All data lives in Firestore and is read and written by the browser (see src/lib/data.ts and
-// firestore.rules). This server only serves the pages, SEO tags, robots.txt and the sitemap.
+// firestore.rules). This server serves the pages, SEO tags, robots.txt and the sitemap, and sends
+// the booking emails.
 
-// V1_DISABLED: Email integration commented out for Version 1
-async function sendBookingConfirmationEmail(_appointment: any) {
-  return { sent: false, method: 'DISABLED_V1' };
-}
-/* V1_DISABLED_EMAIL_START
-async function sendBookingConfirmationEmail__disabled(appointment: any) {
-  const patientEmail = appointment.patientEmail;
-  if (!patientEmail) return { sent: false, reason: 'No email provided' };
-
-  const clinicEmail = 'krishnavenirehab@gmail.com';
-  const clinicPhone = '+91 94906 05809';
-  const patientName = appointment.patientName || 'Valued Patient';
-  const doctorName = appointment.doctorName || 'Dr. P. Sai Tejaswini, MPT (Neuro), MIAP';
-  const meetLink = (appointment.meetingLink && !appointment.meetingLink.includes('kpv-neuo-phy')) 
-    ? appointment.meetingLink 
-    : resolveConsultationMeetingLink(appointment.id);
-  const meetingPasscode = appointment.meetingPassword || 'KPV-REHAB';
-  
-  const subject = `Confirmed: Online Video Consultation with ${doctorName} on ${appointment.date} (${appointment.timeSlot})`;
-  
-  const htmlBody = `
-    <!DOCTYPE html>
-    <html>
-    <head><meta charset="utf-8"/></head>
-    <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 24px; color: #1e293b;">
-      <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
-        
-        <div style="background: #0f172a; padding: 28px 24px; text-align: center; color: #ffffff;">
-          <h1 style="margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.02em;">KRISHNAVENI ADVANCED PHYSIOTHERAPY</h1>
-          <p style="margin: 6px 0 0; color: #38bdf8; font-size: 13px; font-weight: 600;">CONSULTATION BOOKING & PAYMENT CONFIRMATION</p>
-        </div>
-
-        <div style="padding: 24px;">
-          <p style="font-size: 16px; margin: 0 0 16px;">Dear <strong>${patientName}</strong>,</p>
-          <p style="font-size: 14px; line-height: 1.6; color: #334155; margin: 0 0 20px;">
-            Your online physiotherapy video consultation with <strong>${doctorName}</strong> has been successfully booked. Payment is verified and your time slot is reserved.
-          </p>
-
-          <div style="background: #f1f5f9; border-radius: 12px; padding: 18px; margin-bottom: 24px; border: 1px solid #e2e8f0;">
-            <table style="width: 100%; font-size: 13px; border-collapse: collapse;">
-              <tr>
-                <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Patient Name:</td>
-                <td style="padding: 6px 0; font-weight: 700; color: #0f172a; text-align: right;">${appointment.patientName} (${appointment.patientAge || 30} yrs)</td>
-              </tr>
-              <tr>
-                <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Service:</td>
-                <td style="padding: 6px 0; font-weight: 700; color: #0f172a; text-align: right;">${appointment.serviceName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Consultant:</td>
-                <td style="padding: 6px 0; font-weight: 700; color: #0f172a; text-align: right;">${doctorName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Date:</td>
-                <td style="padding: 6px 0; font-weight: 700; color: #0f172a; text-align: right;">${appointment.date}</td>
-              </tr>
-              <tr>
-                <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Time Slot:</td>
-                <td style="padding: 6px 0; font-weight: 700; color: #0284c7; text-align: right;">${appointment.timeSlot} (45 Mins)</td>
-              </tr>
-              <tr>
-                <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Payment Status:</td>
-                <td style="padding: 6px 0; font-weight: 700; color: #16a34a; text-align: right;">Paid ₹${appointment.amountPaid} (${appointment.paymentMethod})</td>
-              </tr>
-              <tr>
-                <td style="padding: 6px 0; color: #64748b; font-weight: 500;">Tax Invoice No:</td>
-                <td style="padding: 6px 0; font-weight: 700; color: #475569; text-align: right;">${appointment.invoiceNumber}</td>
-              </tr>
-            </table>
-          </div>
-
-          <div style="background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 14px; padding: 22px 18px; margin-bottom: 24px; text-align: center;">
-            <p style="margin: 0 0 6px; font-size: 12px; font-weight: 800; color: #0369a1; text-transform: uppercase; letter-spacing: 0.05em;">YOUR ONLINE VIDEO CONSULTATION ROOM</p>
-            <h3 style="margin: 0 0 14px; font-size: 16px; color: #0f172a; font-weight: 800;">Consultation with ${doctorName}</h3>
-            
-            <a href="${meetLink}" target="_blank" style="display: inline-block; background: #0284c7; color: #ffffff; text-decoration: none; font-weight: 800; font-size: 15px; padding: 14px 28px; border-radius: 10px; margin-bottom: 12px; box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3);">
-              🎥 Click Here to Join Video Consultation
-            </a>
-            
-            <p style="margin: 8px 0 0; font-size: 12px; color: #0c4a6e;">
-              Direct Room Link: <a href="${meetLink}" style="color: #0284c7; font-weight: 700; word-break: break-all;">${meetLink}</a>
-            </p>
-            <p style="margin: 6px 0 0; font-size: 12px; color: #0369a1;">
-              Room Passcode: <strong>${meetingPasscode}</strong> • Direct zero-login encrypted video call
-            </p>
-          </div>
-
-          <div style="border-top: 1px solid #e2e8f0; padding-top: 16px; font-size: 12px; color: #64748b; line-height: 1.5;">
-            <p style="margin: 0 0 6px;"><strong>Consultation Preparation Guidelines:</strong></p>
-            <ul style="margin: 0 0 16px; padding-left: 18px;">
-              <li>Please join the Google Meet link 5 minutes prior to your scheduled time slot.</li>
-              <li>Wear comfortable, loose clothing that allows evaluation of joint movements or posture.</li>
-              <li>Keep relevant MRI, CT, X-Ray scans, or doctor prescriptions readily accessible.</li>
-            </ul>
-            <p style="margin: 0;">Clinic Support & WhatsApp: <strong>${clinicPhone}</strong> | Clinic Email: <strong>${clinicEmail}</strong></p>
-          </div>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-
-  const smtpHost = process.env.SMTP_HOST || (store.clinicInfo as any)?.smtpHost || 'smtp.gmail.com';
-  const smtpPort = Number(process.env.SMTP_PORT || (store.clinicInfo as any)?.smtpPort) || 465;
-  const smtpUser = process.env.SMTP_USER || (store.clinicInfo as any)?.smtpUser || 'krishnavenirehab@gmail.com';
-  const rawPass = process.env.SMTP_PASS || (store.clinicInfo as any)?.smtpPass || 'hhwgweugxovntsxj';
-  const smtpPass = rawPass ? rawPass.replace(/\s+/g, '') : '';
-  const smtpFrom = process.env.SMTP_FROM || (store.clinicInfo as any)?.smtpFrom || `"Krishnaveni Physiotherapy" <${smtpUser || clinicEmail}>`;
-  const resendApiKey = process.env.RESEND_API_KEY || (store.clinicInfo as any)?.resendApiKey;
-  const sendgridApiKey = process.env.SENDGRID_API_KEY || (store.clinicInfo as any)?.sendgridApiKey;
-
-  let emailResult: any = { sent: false, method: 'NONE' };
-
-  // 1. Resend API Integration
-  if (!emailResult.sent && resendApiKey) {
-    try {
-      const resp = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${resendApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          from: smtpFrom.includes('<') ? smtpFrom : `Krishnaveni Physiotherapy <${clinicEmail}>`,
-          to: [patientEmail],
-          subject,
-          html: htmlBody
-        })
-      });
-      const data = await resp.json();
-      if (resp.ok) {
-        console.log(`[EMAIL DISPATCHED] Resend API to ${patientEmail}:`, data);
-        emailResult = { sent: true, method: 'RESEND_API', sender: clinicEmail, recipient: patientEmail };
-      }
-    } catch (err) {
-      console.error('[RESEND API ERROR]', err);
-    }
+// ================= BOOKING EMAILS =================
+// The same route is a Vercel Function in api/booking-email.ts.
+app.post('/api/booking-email', async (req, res) => {
+  try {
+    const { status, message } = await sendBookingEmails(req.body?.bookingId);
+    res.status(status).json({ message });
+  } catch (err) {
+    console.error('[booking-email]', err);
+    res.status(500).json({ message: 'The emails could not be sent.' });
   }
-
-  // 2. SendGrid API Integration
-  if (!emailResult.sent && sendgridApiKey) {
-    try {
-      const resp = await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${sendgridApiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: patientEmail }] }],
-          from: { email: clinicEmail, name: 'Krishnaveni Physiotherapy' },
-          subject,
-          content: [{ type: 'text/html', value: htmlBody }]
-        })
-      });
-      if (resp.ok) {
-        console.log(`[EMAIL DISPATCHED] SendGrid to ${patientEmail}`);
-        emailResult = { sent: true, method: 'SENDGRID_API', sender: clinicEmail, recipient: patientEmail };
-      }
-    } catch (err) {
-      console.error('[SENDGRID API ERROR]', err);
-    }
-  }
-
-  // 3. Gmail / SMTP Transport
-  if (!emailResult.sent && smtpUser && smtpPass) {
-    try {
-      const nodemailer = await import('nodemailer');
-      const isGmail = (smtpHost && smtpHost.includes('gmail')) || (smtpUser && smtpUser.includes('gmail.com'));
-      
-      const transportConfig = isGmail
-        ? {
-            service: 'gmail',
-            auth: {
-              user: smtpUser,
-              pass: smtpPass
-            }
-          }
-        : {
-            host: smtpHost || 'smtp.gmail.com',
-            port: smtpPort,
-            secure: smtpPort === 465,
-            auth: {
-              user: smtpUser,
-              pass: smtpPass,
-            },
-          };
-
-      const transporter = nodemailer.createTransport(transportConfig as any);
-
-      await transporter.sendMail({
-        from: smtpFrom,
-        to: patientEmail,
-        subject,
-        html: htmlBody,
-      });
-      console.log(`[EMAIL DISPATCHED] Confirmation sent from ${smtpUser} to ${patientEmail} via ${isGmail ? 'Gmail Service' : 'SMTP'}`);
-      emailResult = { sent: true, method: isGmail ? 'GMAIL_SMTP' : 'SMTP', sender: smtpUser, recipient: patientEmail };
-    } catch (err) {
-      console.error('[EMAIL ERROR] Failed to send via Gmail/SMTP:', err);
-      emailResult = { sent: false, method: 'SMTP_FAILED', error: String(err) };
-    }
-  }
-
-  if (!emailResult.sent) {
-    // Automated clinical dispatch record
-    console.log(`[EMAIL DISPATCH RECORDED] From: ${clinicEmail} To: ${patientEmail}, Subject: "${subject}"`);
-    emailResult = { sent: true, method: 'CLINIC_OUTBOX_RECORD', sender: clinicEmail, recipient: patientEmail };
-  }
-
-  // Push to notification outbox logs
-  (store as any).notificationLogs = (store as any).notificationLogs || [];
-  (store as any).notificationLogs.unshift({
-    id: `notif-email-${Date.now()}`,
-    type: 'Email',
-    recipient: patientEmail,
-    appointmentId: appointment.id,
-    patientName: appointment.patientName,
-    status: emailResult.sent ? (emailResult.method === 'SMTP' || emailResult.method === 'RESEND_API' || emailResult.method === 'SENDGRID_API' ? `Delivered (${emailResult.method})` : 'Dispatched to Patient Email') : 'Failed',
-    details: `Subject: ${subject} | Doctor: ${doctorName} | Slot: ${appointment.date} (${appointment.timeSlot})`,
-    timestamp: new Date().toISOString()
-  });
-  saveStore();
-
-  return emailResult;
-}
-V1_DISABLED_EMAIL_END */
+});
 
 /* V1_DISABLED_WHATSAPP_START
 interface MetaWhatsAppSendResult {
@@ -2091,85 +1877,6 @@ app.post('/api/whatsapp/webhook', (req, res) => {
   res.sendStatus(404);
 });
 V1_DISABLED_WA_ENDPOINTS_END */
-
-/* V1_DISABLED_EMAIL_ENDPOINTS_START
-// Send Test Email using configured Gmail App Password / SMTP
-app.post('/api/admin/test-email', async (req, res) => {
-  const targetEmail = req.body?.email || 'kbharathkumar654@gmail.com';
-  const clinic = (store.clinicInfo as any) || {};
-  const smtpUser = process.env.SMTP_USER || clinic.smtpUser || 'krishnavenirehab@gmail.com';
-  const rawPass = process.env.SMTP_PASS || clinic.smtpPass || 'hhwgweugxovntsxj';
-  const smtpPass = rawPass ? rawPass.replace(/\s+/g, '') : '';
-
-  try {
-    const nodemailer = await import('nodemailer');
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: smtpUser,
-        pass: smtpPass
-      }
-    });
-
-    const info = await transporter.sendMail({
-      from: `"Krishnaveni Advanced Physiotherapy" <${smtpUser}>`,
-      to: targetEmail,
-      subject: '✅ Verification: Krishnaveni Physiotherapy Email System Active',
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 24px; color: #1e293b; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff;">
-          <h2 style="color: #0f766e; margin-top: 0; margin-bottom: 8px;">🏥 Krishnaveni Advanced Physiotherapy</h2>
-          <h3 style="color: #15803d; margin-top: 0;">✓ Two-Step Verification App Password Connected!</h3>
-          <p style="font-size: 15px; line-height: 1.6; color: #334155;">
-            Your clinic Gmail account (<strong>${smtpUser}</strong>) is successfully configured to send automated consultation bookings, tax invoices, and Google Meet video links to patients.
-          </p>
-          <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px 18px; margin: 20px 0;">
-            <p style="margin: 0; color: #166534; font-weight: bold; font-size: 14px;">⚡ System Status: Live & Ready</p>
-            <p style="margin: 4px 0 0 0; color: #15803d; font-size: 13px;">Patients will now receive instant confirmation emails upon payment completion.</p>
-          </div>
-          <p style="font-size: 12px; color: #94a3b8; margin-top: 24px; border-top: 1px solid #f1f5f9; padding-top: 12px;">
-            Sender: ${smtpUser} • Recipient: ${targetEmail} • Dispatched at: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST
-          </p>
-        </div>
-      `
-    });
-
-    console.log('[TEST EMAIL SUCCESS]', info.messageId);
-    res.json({
-      success: true,
-      message: `Test email successfully delivered from ${smtpUser} to ${targetEmail}!`,
-      messageId: info.messageId
-    });
-  } catch (err: any) {
-    console.error('[TEST EMAIL FAILED]', err);
-    res.status(500).json({
-      success: false,
-      error: err.message || String(err)
-    });
-  }
-});
-
-app.get('/api/admin/notification-logs', (_req, res) => {
-  res.json((store as any).notificationLogs || []);
-});
-
-// Re-send notifications for confirmed appointment
-app.post('/api/appointments/:id/resend-notifications', async (req, res) => {
-  const appointment = store.appointments.find(a => a.id === req.params.id);
-  if (!appointment) {
-    return res.status(404).json({ error: 'Appointment not found' });
-  }
-
-  const emailRes = await sendBookingConfirmationEmail(appointment);
-  const waRes = await sendBookingConfirmationWhatsApp(appointment);
-
-  res.json({
-    success: true,
-    message: 'Notifications re-dispatched successfully',
-    email: emailRes,
-    whatsapp: waRes
-  });
-});
-V1_DISABLED_EMAIL_ENDPOINTS_END */
 
 // ================= SEO: ROBOTS & SITEMAP =================
 const SERVER_STARTED_AT = new Date();
