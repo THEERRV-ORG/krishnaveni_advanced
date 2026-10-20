@@ -3,6 +3,22 @@ import { X } from 'lucide-react';
 import { DepartmentInfo } from '../types';
 import { CLINICAL_DEPARTMENTS } from '../data/departmentsData';
 import { useScrollLock } from '../hooks/useScrollLock';
+import neuroImg from '../assets/images/conditions/neuro.jpg';
+import orthoImg from '../assets/images/conditions/ortho.jpg';
+import postOpImg from '../assets/images/conditions/post-op.jpg';
+import sportsImg from '../assets/images/conditions/sports.jpg';
+import womensHealthImg from '../assets/images/conditions/womens-health.jpg';
+import cardioPulmonaryImg from '../assets/images/conditions/cardio-pulmonary.jpg';
+
+// Kept here rather than in departmentsData, which the server also imports and cannot load images.
+const DEPT_IMAGE: Record<string, { src: string; alt: string }> = {
+  'dept-neuro': { src: neuroImg, alt: 'A physiotherapist supporting a stroke patient walking between parallel bars' },
+  'dept-ortho': { src: orthoImg, alt: "A physiotherapist assessing a patient's lower back on a treatment table" },
+  'dept-postop': { src: postOpImg, alt: 'A physiotherapist guiding a knee exercise after knee replacement surgery' },
+  'dept-sports': { src: sportsImg, alt: "A physiotherapist applying kinesiology tape to an athlete's knee" },
+  'dept-gynae-womens': { src: womensHealthImg, alt: 'A physiotherapist guiding a pregnant woman through a gentle exercise' },
+  'dept-cardio-pulmonary': { src: cardioPulmonaryImg, alt: 'A physiotherapist coaching a patient on a rehab exercise bike' },
+};
 
 interface ServicesGridProps {
   onOpenBooking: (preloadedIssue?: string) => void;
@@ -67,14 +83,31 @@ export const ServicesGrid: React.FC<ServicesGridProps> = ({ onOpenBooking }) => 
         <ul className="divide-y divide-line">
           {visible.map(dept => (
             <li key={dept.id} className="py-8 grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-8 px-3 -mx-3 rounded-lg transition-colors duration-200 hover:bg-primary-wash/80 group">
-              <div className="md:col-span-4">
+              {DEPT_IMAGE[dept.id] && (
+                <button
+                  type="button"
+                  onClick={() => setActiveDept(dept)}
+                  aria-label={`Read details: ${dept.name}`}
+                  className="md:col-span-3 overflow-hidden rounded-md bg-paper-deep aspect-[3/2] self-start"
+                >
+                  <img
+                    src={DEPT_IMAGE[dept.id].src}
+                    alt={DEPT_IMAGE[dept.id].alt}
+                    loading="lazy"
+                    width={600}
+                    height={400}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                  />
+                </button>
+              )}
+              <div className="md:col-span-3">
                 <h3 className="text-xl text-ink">{dept.name}</h3>
                 <p className="mt-2 text-sm text-ink-soft leading-relaxed">{dept.tagline}</p>
               </div>
-              <p className="md:col-span-5 text-[15px] text-ink leading-relaxed">
+              <p className="md:col-span-4 text-[15px] text-ink leading-relaxed">
                 {dept.whatWeTreat.map(item => item.condition).join(' · ')}
               </p>
-              <div className="md:col-span-3 flex md:justify-end text-sm">
+              <div className="md:col-span-2 flex md:justify-end text-sm">
                 <button
                   type="button"
                   onClick={() => setActiveDept(dept)}
@@ -116,6 +149,13 @@ export const ServicesGrid: React.FC<ServicesGridProps> = ({ onOpenBooking }) => 
             </div>
 
             <div className="px-6 sm:px-8 py-6 overflow-y-auto overscroll-contain space-y-10">
+              {DEPT_IMAGE[activeDept.id] && (
+                <img
+                  src={DEPT_IMAGE[activeDept.id].src}
+                  alt={DEPT_IMAGE[activeDept.id].alt}
+                  className="w-full aspect-[5/2] object-cover rounded-md bg-paper-deep"
+                />
+              )}
               <p className="text-[17px] leading-relaxed text-ink-soft">{activeDept.overview}</p>
 
               <div>
