@@ -7,6 +7,8 @@ import { INITIAL_CLINIC_INFO, INITIAL_DOCTOR, INITIAL_FAQS } from './src/data/in
 
 // Static hosts (Vercel) never run server.ts, so the production build carries its own SEO tags,
 // robots.txt and sitemap.xml. Vercel provides VERCEL_PROJECT_PRODUCTION_URL automatically.
+// Elsewhere (Azure, Docker) server.ts fills the tags in on each request from its environment,
+// so the build leaves the placeholder in place.
 function staticSeo(siteUrl: string): Plugin {
   return {
     name: 'static-seo',
@@ -30,7 +32,7 @@ export default defineConfig(({ mode }) => {
   ).replace(/\/+$/, '');
 
   return {
-    plugins: [react(), tailwindcss(), staticSeo(siteUrl)],
+    plugins: [react(), tailwindcss(), ...(env.VERCEL ? [staticSeo(siteUrl)] : [])],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),

@@ -8,6 +8,7 @@ import { routeForPath } from './src/routes.js';
 import { HEAD_PLACEHOLDER, renderHead, renderRobots, renderSitemap, siteUrlFor } from './seo.js';
 import { getSeoContent } from './server/siteContent.js';
 import { sendBookingEmails } from './server/bookingEmail.js';
+import { renderClientConfig } from './server/clientConfig.js';
 
 const currentFilePath = typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : '';
 const currentDirPath = currentFilePath ? path.dirname(currentFilePath) : process.cwd();
@@ -1904,7 +1905,7 @@ function pageHandler(loadTemplate: HtmlTemplate): express.RequestHandler {
 
     try {
       const { clinic, doctor, faqs } = await getSeoContent();
-      const head = renderHead({ siteUrl: siteUrlFor(req), clinic, doctor, faqs, notFound: !route });
+      const head = renderHead({ siteUrl: siteUrlFor(req), clinic, doctor, faqs, notFound: !route }) + renderClientConfig();
       const html = (await loadTemplate(req)).replace(HEAD_PLACEHOLDER, head);
       res.status(route ? 200 : 404).type('html').send(html);
     } catch (err) {
