@@ -20,20 +20,7 @@ const DEPT_IMAGE: Record<string, { src: string; alt: string }> = {
   'dept-cardio-pulmonary': { src: cardioPulmonaryImg, alt: 'A physiotherapist coaching a patient on a rehab exercise bike' },
 };
 
-interface ServicesGridProps {
-  onOpenBooking: (preloadedIssue?: string) => void;
-}
-
-const BOOK_LABEL: Record<string, string> = {
-  'dept-neuro': 'Book a neuro consultation',
-  'dept-ortho': 'Book an ortho consultation',
-  'dept-postop': 'Book a post-op consultation',
-  'dept-sports': 'Book a sports injury consultation',
-  'dept-gynae-womens': "Book a women's health consultation",
-  'dept-cardio-pulmonary': 'Book a cardio-pulmonary consultation',
-};
-
-export const ServicesGrid: React.FC<ServicesGridProps> = ({ onOpenBooking }) => {
+export const ServicesGrid: React.FC = () => {
   const [selected, setSelected] = useState<string>('All');
   const [activeDept, setActiveDept] = useState<DepartmentInfo | null>(null);
   useScrollLock(activeDept !== null);
@@ -42,11 +29,6 @@ export const ServicesGrid: React.FC<ServicesGridProps> = ({ onOpenBooking }) => 
   const visible = selected === 'All'
     ? CLINICAL_DEPARTMENTS
     : CLINICAL_DEPARTMENTS.filter(d => d.shortCode === selected);
-
-  const book = (dept: DepartmentInfo) => {
-    setActiveDept(null);
-    onOpenBooking(`${dept.name}: `);
-  };
 
   return (
     <section id="conditions" className="py-16 sm:py-24 bg-paper-deep/60 border-y border-line scroll-mt-24">
@@ -200,20 +182,13 @@ export const ServicesGrid: React.FC<ServicesGridProps> = ({ onOpenBooking }) => 
               </div>
             </div>
 
-            <div className="px-6 sm:px-8 py-4 border-t border-line flex justify-end gap-3">
+            <div className="px-6 sm:px-8 py-4 border-t border-line flex justify-end">
               <button
                 type="button"
                 onClick={() => setActiveDept(null)}
-                className="px-4 py-2 text-sm text-ink-soft hover:text-ink"
+                className="px-5 py-2 text-sm font-semibold text-ink border border-line rounded-md bg-white hover:border-primary transition-colors"
               >
                 Close
-              </button>
-              <button
-                type="button"
-                onClick={() => book(activeDept)}
-                className="bg-accent hover:bg-accent-deep text-ink font-semibold text-sm px-5 py-2 rounded-md transition-colors"
-              >
-                {BOOK_LABEL[activeDept.id] ?? 'Book a consultation'}
               </button>
             </div>
           </div>

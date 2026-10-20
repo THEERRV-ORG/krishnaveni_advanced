@@ -158,7 +158,7 @@ export default function App() {
           />
         </div>
         <AboutDoctor doctor={doctor} onOpenBooking={() => handleOpenBooking('Online Consultation')} />
-        <ServicesGrid onOpenBooking={(issues) => handleOpenBooking('Online Consultation', null, [], issues || '')} />
+        <ServicesGrid />
         <HowItWorks />
         <TestimonialsSection testimonials={testimonials} whatsapp={clinicInfo.whatsapp} />
         <FAQSection faqs={faqs} />
