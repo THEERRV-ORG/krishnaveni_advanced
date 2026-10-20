@@ -7,8 +7,12 @@ import heroSlide2 from '../assets/images/hero_slide_2.jpg';
 import heroSlide3 from '../assets/images/hero_slide_3.jpg';
 import doctorPlaceholder from '../assets/images/doctor_placeholder.webp';
 
-// Background photos that cross-fade behind the hero copy.
-const SLIDES = [heroBg, heroSlide2, heroSlide3];
+// Each slide pairs a background photo with a headline; both cross-fade together.
+const SLIDES = [
+  { image: heroBg, title: 'Expert Online Physiotherapy &', emphasis: 'Rehabilitation' },
+  { image: heroSlide2, title: 'Multispecialty Online', emphasis: 'Rehabilitation Care' },
+  { image: heroSlide3, title: 'Seamless Google Meet & Zoom', emphasis: 'Video Sessions' },
+];
 const SLIDE_MS = 6000;
 
 interface HeroBannerProps {
@@ -33,10 +37,10 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onOpenBooking, doctor, c
   return (
     <section className="relative overflow-hidden border-b border-line bg-paper">
       <div aria-hidden className="absolute inset-0">
-        {SLIDES.map((src, idx) => (
+        {SLIDES.map(({ image }, idx) => (
           <img
-            key={src}
-            src={src}
+            key={image}
+            src={image}
             alt=""
             fetchPriority={idx === 0 ? 'high' : 'low'}
             decoding="async"
@@ -52,9 +56,19 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onOpenBooking, doctor, c
 
         <div className="lg:col-span-7">
           <span className="band mb-6" />
-          <h1 className="text-[2.1rem] leading-[1.15] sm:text-5xl sm:leading-[1.12] text-ink">
-            Physiotherapy for stroke, spine and joint pain —{' '}
-            <em className="text-primary">by video, from home.</em>
+          {/* All headlines share one grid cell, so the block is as tall as the longest and nothing below moves. */}
+          <h1 className="grid text-[2.1rem] leading-[1.15] sm:text-5xl sm:leading-[1.12] text-ink">
+            {SLIDES.map((slide, idx) => (
+              <span
+                key={slide.title}
+                aria-hidden={idx !== current}
+                className={`col-start-1 row-start-1 transition-opacity duration-700 ease-out ${
+                  idx === current ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                {slide.title} <em className="text-primary">{slide.emphasis}</em>
+              </span>
+            ))}
           </h1>
           <p className="mt-6 text-lg text-ink-soft leading-relaxed max-w-xl">
             One-to-one, 45-minute consultations on Google Meet with {doctor.name}.
@@ -117,9 +131,9 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({ onOpenBooking, doctor, c
       </div>
 
       <div className="absolute bottom-3 inset-x-0 flex justify-center gap-1" role="group" aria-label="Background photo">
-        {SLIDES.map((src, idx) => (
+        {SLIDES.map(({ image }, idx) => (
           <button
-            key={src}
+            key={image}
             type="button"
             onClick={() => setCurrent(idx)}
             aria-label={`Show photo ${idx + 1} of ${SLIDES.length}`}
