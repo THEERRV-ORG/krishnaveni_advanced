@@ -21,12 +21,12 @@ const DEPT_IMAGE: Record<string, { src: string; alt: string }> = {
 };
 
 export const ServicesGrid: React.FC = () => {
-  const [selected, setSelected] = useState<string>('All');
+  const [selected, setSelected] = useState<string>('All Departments');
   const [activeDept, setActiveDept] = useState<DepartmentInfo | null>(null);
   useScrollLock(activeDept !== null);
 
-  const tabs = ['All', ...CLINICAL_DEPARTMENTS.map(d => d.shortCode)];
-  const visible = selected === 'All'
+  const tabs = ['All Departments', ...CLINICAL_DEPARTMENTS.map(d => d.shortCode)];
+  const visible = selected === 'All Departments'
     ? CLINICAL_DEPARTMENTS
     : CLINICAL_DEPARTMENTS.filter(d => d.shortCode === selected);
 
@@ -131,14 +131,19 @@ export const ServicesGrid: React.FC = () => {
             </div>
 
             <div className="px-6 sm:px-8 py-6 overflow-y-auto overscroll-contain space-y-10">
-              {DEPT_IMAGE[activeDept.id] && (
-                <img
-                  src={DEPT_IMAGE[activeDept.id].src}
-                  alt={DEPT_IMAGE[activeDept.id].alt}
-                  className="w-full aspect-[5/2] object-cover rounded-md bg-paper-deep"
-                />
-              )}
-              <p className="text-[17px] leading-relaxed text-ink-soft">{activeDept.overview}</p>
+              {/* The photos are 3:2, so they are shown at that shape: nothing is cropped. */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+                {DEPT_IMAGE[activeDept.id] && (
+                  <img
+                    src={DEPT_IMAGE[activeDept.id].src}
+                    alt={DEPT_IMAGE[activeDept.id].alt}
+                    width={600}
+                    height={400}
+                    className="w-full aspect-[3/2] object-cover rounded-md bg-paper-deep"
+                  />
+                )}
+                <p className="text-[17px] leading-relaxed text-ink-soft">{activeDept.overview}</p>
+              </div>
 
               <div>
                 <h4 className="text-lg text-ink">Conditions</h4>
