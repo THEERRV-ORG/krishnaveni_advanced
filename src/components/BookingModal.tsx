@@ -11,7 +11,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { Service, ConsultationType, TimeSlot, Appointment } from '../types';
-import { BookingError, createBooking, getTakenSeats, type SiteContent } from '../lib/data';
+import { BookingError, createBooking, getTakenSeats, requestBookingEmails, type SiteContent } from '../lib/data';
 import { whatsappLink } from '../utils/whatsapp';
 import { useScrollLock } from '../hooks/useScrollLock';
 
@@ -242,6 +242,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       );
       setConfirmedAppointment(appointment);
       setStep(3);
+      requestBookingEmails(appointment.id);
       onBookingComplete(appointment);
     } catch (err) {
       console.error('Booking failed', err);

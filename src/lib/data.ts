@@ -209,6 +209,20 @@ export async function createBooking(input: BookingInput, content: SiteContent): 
   throw new BookingError('That time was just booked by someone else. Choose another.');
 }
 
+/** Asks the server to email the patient and the clinic. Never throws: the booking is already saved. */
+export function requestBookingEmails(bookingId: string): void {
+  fetch('/api/booking-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bookingId }),
+    keepalive: true,
+  })
+    .then(res => {
+      if (!res.ok) console.warn(`Booking emails were not sent (${res.status}).`);
+    })
+    .catch(err => console.warn('Booking emails could not be requested.', err));
+}
+
 export async function getBookingById(id: string): Promise<Appointment | null> {
   const snap = await getDoc(doc(db(), 'appointments', id));
   return snap.exists() ? toAppointment(snap.data()) : null;

@@ -39,6 +39,15 @@
     letter-spacing: -0.01em;
   }
 
+  /* Tailwind v4 gives buttons the default cursor; restore the pointer. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+  button:disabled {
+    cursor: not-allowed;
+  }
+
   :focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;

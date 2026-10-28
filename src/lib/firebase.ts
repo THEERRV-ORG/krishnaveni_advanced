@@ -2,7 +2,9 @@ import { getApps, initializeApp, type FirebaseApp } from 'firebase/app';
 import { connectFirestoreEmulator, getFirestore, type Firestore } from 'firebase/firestore/lite';
 
 // The Firebase web config is public by design; the security rules in firestore.rules decide access.
-const config = {
+// The server writes it into each page from its environment (server/clientConfig.ts); static hosts
+// such as Vercel have no server, so the values Vite baked in at build time are the fallback.
+const config = window.__APP_CONFIG__?.firebase ?? {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,

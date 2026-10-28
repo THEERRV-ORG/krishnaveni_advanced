@@ -7,6 +7,13 @@ interface ImportMetaEnv {
   readonly VITE_FIREBASE_APP_ID?: string;
 }
 
+interface Window {
+  /** Written into each page by the server; see server/clientConfig.ts. */
+  __APP_CONFIG__?: {
+    firebase: { apiKey?: string; authDomain?: string; projectId?: string; appId?: string };
+  };
+}
+
 declare module '*.jpg' {
   const src: string;
   export default src;

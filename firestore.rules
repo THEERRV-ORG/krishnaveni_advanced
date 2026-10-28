@@ -96,6 +96,20 @@ service cloud.firestore {
       allow create: if validBooking(bookingId, request.resource.data);
     }
 
+    // ---------- booking emails ----------
+    // The server creates one marker per booking before emailing it (server/bookingEmail.ts).
+    // A marker can only be created once, and only for a booking made in the last 15 minutes,
+    // so the email endpoint cannot be used to send the same booking's emails twice.
+    match /bookingEmails/{bookingId} {
+      allow create: if request.resource.data.keys().hasOnly(['sentAt'])
+        && request.resource.data.sentAt == request.time
+        && exists(/databases/$(database)/documents/appointments/$(bookingId))
+        && get(/databases/$(database)/documents/appointments/$(bookingId)).data.createdAt
+             > request.time - duration.value(15, 'm');
+      allow read: if isAdmin();
+      allow update, delete: if false;
+    }
+
     function validBooking(bookingId, d) {
       let hold = getAfter(/databases/$(database)/documents/slotHolds/$(d.holdId));
       return bookingId.matches('^APT-[0-9]{4}-[A-HJ-NP-Z2-9]{6}$')
