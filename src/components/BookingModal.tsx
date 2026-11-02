@@ -2,16 +2,14 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   X,
   CheckCircle2,
-  Video,
   ArrowLeft,
   Loader2,
   Copy,
   Check,
-  ExternalLink,
   AlertCircle,
 } from 'lucide-react';
 import { Service, ConsultationType, TimeSlot, Appointment } from '../types';
-import { BookingError, createBooking, getTakenSeats, requestBookingEmails, type SiteContent } from '../lib/data';
+import { BookingError, createBooking, getTakenSeats, type SiteContent } from '../lib/data';
 import { whatsappLink } from '../utils/whatsapp';
 import { useScrollLock } from '../hooks/useScrollLock';
 
@@ -90,7 +88,7 @@ interface BookingModalProps {
   onBookingComplete: (appointment: Appointment) => void;
 }
 
-const STEP_LABELS = ['Date and time', 'Your details', 'Confirmed'];
+const STEP_LABELS = ['Date and time', 'Your details', 'Submitted'];
 
 export const BookingModal: React.FC<BookingModalProps> = ({
   content,
@@ -242,7 +240,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       );
       setConfirmedAppointment(appointment);
       setStep(3);
-      requestBookingEmails(appointment.id);
       onBookingComplete(appointment);
     } catch (err) {
       console.error('Booking failed', err);
@@ -479,9 +476,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
             return (
               <div>
-                <CheckCircle2 className="w-9 h-9 text-primary" />
-                <h3 className="mt-3 text-2xl text-ink">Your consultation is booked</h3>
-                <p className="mt-1 text-ink-soft">Keep your booking ID. You'll need it to track or change the booking.</p>
+                <CheckCircle2 className="w-9 h-9 text-amber-500" />
+                <h3 className="mt-3 text-2xl text-ink">Booking request submitted</h3>
+                <p className="mt-1 text-ink-soft">Your request is pending approval by the clinic. You'll receive a confirmation email once the doctor approves it. Keep your booking ID to track the status.</p>
 
                 <dl className="mt-6 border-y border-line divide-y divide-line">
                   <div className="py-3 flex items-center justify-between gap-4">
@@ -508,21 +505,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   </div>
                 </dl>
 
-                {meetLink && (
-                  <div className="mt-6">
-                    <a
-                      href={meetLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 bg-primary hover:bg-primary-deep text-paper font-semibold px-5 py-2.5 rounded-md transition-colors"
-                    >
-                      <Video className="w-4 h-4" />
-                      Open the consultation link
-                      <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-                    </a>
-                    <p className="mt-2 text-sm text-ink-mute">Join five minutes before your time.</p>
-                  </div>
-                )}
+                <p className="mt-4 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2.5">
+                  The consultation link will be shared in your confirmation email once approved.
+                </p>
 
                 <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
                   <a href={waUrl} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold underline underline-offset-4">

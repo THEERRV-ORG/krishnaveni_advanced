@@ -173,7 +173,7 @@ export async function createBooking(input: BookingInput, content: SiteContent): 
       timeSlot: input.slot.timeString,
       slotId: input.slot.id,
       durationMinutes: 45,
-      status: 'Confirmed',
+      status: 'Pending',
       problemDescription: input.problemDescription,
       medicalReports: [],
       amountPaid: 0,
@@ -221,6 +221,13 @@ export function requestBookingEmails(bookingId: string): void {
       if (!res.ok) console.warn(`Booking emails were not sent (${res.status}).`);
     })
     .catch(err => console.warn('Booking emails could not be requested.', err));
+}
+
+/** Approve a pending booking: sets status to Confirmed and triggers confirmation emails. */
+export async function approveAppointment(apt: Appointment): Promise<Appointment> {
+  await setDoc(doc(db(), 'appointments', apt.id), { status: 'Confirmed' }, { merge: true });
+  requestBookingEmails(apt.id);
+  return { ...apt, status: 'Confirmed' };
 }
 
 export async function getBookingById(id: string): Promise<Appointment | null> {

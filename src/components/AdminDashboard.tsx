@@ -23,6 +23,7 @@ import {
   watchAdminUser,
 } from '../lib/adminAuth';
 import {
+  approveAppointment,
   cancelAppointment,
   getDefaultMeetingLink,
   isAdminAccount,
@@ -704,10 +705,11 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
               <button
                 type="button"
                 disabled={saving !== null}
-                onClick={() => run('confirm', () => updateAppointmentFields(a, { status: 'Confirmed' }), 'Booking confirmed.')}
+                onClick={() => run('confirm', () => approveAppointment(a), 'Booking approved. Confirmation email sent.')}
                 className="px-4 py-2 border border-primary text-primary text-sm font-semibold rounded-md disabled:opacity-60"
               >
-                Confirm
+                {saving === 'confirm' && <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" />}
+                Approve
               </button>
             )}
             {isActive(a) && (
