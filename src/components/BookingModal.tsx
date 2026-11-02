@@ -142,6 +142,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [confirmedAppointment, setConfirmedAppointment] = useState<Appointment | null>(null);
   const [copied, setCopied] = useState<'id' | 'details' | null>(null);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
   const prevIsOpenRef = useRef(false);
   useEffect(() => {
     const justOpened = isOpen && !prevIsOpenRef.current;
@@ -240,6 +241,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       );
       setConfirmedAppointment(appointment);
       setStep(3);
+      setTimeout(() => scrollRef.current?.scrollTo({ top: 0 }), 0);
       onBookingComplete(appointment);
     } catch (err) {
       console.error('Booking failed', err);
@@ -293,7 +295,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           })}
         </ol>
 
-        <div className="overflow-y-auto overscroll-contain flex-1 px-6 py-6">
+        <div ref={scrollRef} className="overflow-y-auto overscroll-contain flex-1 px-6 py-6">
 
           {step === 1 && (
             <div className="space-y-6">
@@ -510,9 +512,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </p>
 
                 <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                  <a href={waUrl} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold underline underline-offset-4">
-                    Send details to WhatsApp
-                  </a>
                   <button
                     type="button"
                     onClick={() => copyText(details, 'details')}
