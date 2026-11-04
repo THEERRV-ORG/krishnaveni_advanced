@@ -56,7 +56,20 @@ export default function App() {
   const [bookingPreloadedIssues, setBookingPreloadedIssues] = useState<string>('');
 
   const [patientDashboardOpen, setPatientDashboardOpen] = useState(false);
+  const [patientDashboardInitialId, setPatientDashboardInitialId] = useState('');
   const [adminDashboardOpen, setAdminDashboardOpen] = useState(false);
+
+  // Auto-open track booking modal when URL is /track or has ?track=APT-xxxx
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const trackId = params.get('track');
+    const isTrackPath = window.location.pathname === '/track';
+    if (trackId || isTrackPath) {
+      if (trackId) setPatientDashboardInitialId(trackId.trim().toUpperCase());
+      setPatientDashboardOpen(true);
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
 
   // Fetch live store data from backend Express server
   useEffect(() => {
@@ -208,6 +221,7 @@ export default function App() {
         onClose={() => setPatientDashboardOpen(false)}
         onBookNew={() => handleOpenBooking('Online Consultation')}
         whatsapp={clinicInfo.whatsapp}
+        initialBookingId={patientDashboardInitialId}
       />
 
       {adminDashboardOpen && (

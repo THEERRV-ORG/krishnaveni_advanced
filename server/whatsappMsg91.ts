@@ -28,17 +28,19 @@ function normalisePhone(phone: string): string {
   return digits.length === 10 ? `91${digits}` : digits;
 }
 
+type TemplateVar = { name: string; value: string };
+
 /** Send a single MSG91 WhatsApp template message. Returns true on success. */
 async function sendMsg91Template(
   authKey: string,
   senderNumber: string,
   toNumber: string,
   templateName: string,
-  variables: string[],
+  variables: TemplateVar[],
 ): Promise<boolean> {
   if (!authKey || !templateName) return false;
 
-  const parameters = variables.map(v => ({ type: 'text', text: String(v) }));
+  const parameters = variables.map(v => ({ type: 'text', text: String(v.value), parameter_name: v.name }));
 
   const payload = {
     integrated_number: senderNumber,
@@ -78,7 +80,7 @@ async function sendMsg91Template(
   }
 }
 
-const WEBSITE_URL = 'https://krishnavenirehab.com';
+const WEBSITE_URL = 'https://krishnaveniphysio.in';
 
 /**
  * Reads the booking from Firestore and sends the appropriate WhatsApp messages.
@@ -126,7 +128,12 @@ export async function sendWhatsAppNotifications(
       const sent = await sendMsg91Template(
         cfg.authKey, cfg.senderNumber, patientPhone,
         cfg.templatePending,
-        [apt.patientName, apt.date, apt.timeSlot, apt.doctorName || 'Dr. P. Sai Tejaswini', bookingId, WEBSITE_URL],
+        [
+          { name: 'patient_name', value: apt.patientName },
+          { name: 'date', value: apt.date },
+          { name: 'time', value: apt.timeSlot },
+          { name: 'booking_id', value: bookingId },
+        ],
       );
       results.push(sent);
     }
@@ -137,7 +144,14 @@ export async function sendWhatsAppNotifications(
       const sent = await sendMsg91Template(
         cfg.authKey, cfg.senderNumber, doctorPhone,
         cfg.templateDoctorAlert,
-        [apt.patientName, apt.date, apt.timeSlot, apt.patientPhone, apt.patientEmail, apt.problemDescription || '—'],
+        [
+          { name: 'patient_name', value: apt.patientName },
+          { name: 'date', value: apt.date },
+          { name: 'time', value: apt.timeSlot },
+          { name: 'patient_phone', value: apt.patientPhone },
+          { name: 'patient_email', value: apt.patientEmail },
+          { name: 'complaint', value: apt.problemDescription || '—' },
+        ],
       );
       results.push(sent);
     }
@@ -147,18 +161,29 @@ export async function sendWhatsAppNotifications(
       const sent = await sendMsg91Template(
         cfg.authKey, cfg.senderNumber, patientPhone,
         cfg.templateConfirmed,
-        [apt.patientName, apt.date, apt.timeSlot, apt.doctorName || 'Dr. P. Sai Tejaswini', apt.meetingLink || '', bookingId],
+        [
+          { name: 'patient_name', value: apt.patientName },
+          { name: 'date', value: apt.date },
+          { name: 'time', value: apt.timeSlot },
+          { name: 'doctor_name', value: apt.doctorName || 'Dr. P. Sai Tejaswini' },
+          { name: 'meet_link', value: apt.meetingLink || '' },
+          { name: 'booking_id', value: bookingId },
+        ],
       );
       results.push(sent);
     }
   } else if (event === 'cancelled') {
     // Template 4: booking_rejected → patient
     if (cfg.templateRejected) {
-      const clinicPhone = process.env.CLINIC_PHONE || '919490605809';
       const sent = await sendMsg91Template(
         cfg.authKey, cfg.senderNumber, patientPhone,
         cfg.templateRejected,
-        [apt.patientName, apt.date, apt.timeSlot, clinicPhone, WEBSITE_URL],
+        [
+          { name: 'patient_name', value: apt.patientName },
+          { name: 'date', value: apt.date },
+          { name: 'time', value: apt.timeSlot },
+          { name: 'booking_id', value: bookingId as string },
+        ],
       );
       results.push(sent);
     }

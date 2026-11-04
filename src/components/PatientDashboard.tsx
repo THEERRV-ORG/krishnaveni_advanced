@@ -10,6 +10,7 @@ interface PatientDashboardProps {
   onClose: () => void;
   onBookNew: () => void;
   whatsapp: string;
+  initialBookingId?: string;
 }
 
 const STATUS_STYLE: Record<string, { dot: string; text: string }> = {
@@ -31,7 +32,7 @@ function formatLongDate(iso: string): string {
     : date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-export const PatientDashboard: React.FC<PatientDashboardProps> = ({ isOpen, onClose, onBookNew, whatsapp }) => {
+export const PatientDashboard: React.FC<PatientDashboardProps> = ({ isOpen, onClose, onBookNew, whatsapp, initialBookingId }) => {
   useScrollLock(isOpen);
   const [bookingId, setBookingId] = useState('');
   const [lookupError, setLookupError] = useState('');
@@ -39,8 +40,11 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({ isOpen, onCl
   const [booking, setBooking] = useState<Appointment | null>(null);
 
   useEffect(() => {
-    if (isOpen) setLookupError('');
-  }, [isOpen]);
+    if (isOpen) {
+      setLookupError('');
+      if (initialBookingId) setBookingId(initialBookingId.trim().toUpperCase());
+    }
+  }, [isOpen, initialBookingId]);
 
   if (!isOpen) return null;
 

@@ -7,6 +7,7 @@ export interface SectionRoute {
 
 export const SECTION_ROUTES: SectionRoute[] = [
   { path: '/', id: 'home', label: 'Home' },
+  { path: '/track', id: 'home', label: 'Track Booking' },
   { path: '/about', id: 'about', label: 'About' },
   { path: '/conditions', id: 'conditions', label: 'Conditions' },
   { path: '/how-it-works', id: 'how-it-works', label: 'How it works' },
