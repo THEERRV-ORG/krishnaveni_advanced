@@ -92,13 +92,13 @@ function formatDate(iso: string, opts: Intl.DateTimeFormatOptions): string {
 }
 
 function formatBookedAt(createdAt: unknown): string {
-  const ms = typeof createdAt === 'number' ? createdAt : Number(createdAt);
-  if (!createdAt || Number.isNaN(ms)) return '—';
-  const d = new Date(ms);
+  if (!createdAt) return '—';
+  const d = new Date(createdAt as string);
+  if (Number.isNaN(d.getTime())) return '—';
   const now = new Date();
   const isToday = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
   const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
-  return isToday ? `Today ${time}` : `${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} ${time}`;
+  return isToday ? `Today, ${time}` : `${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, ${time}`;
 }
 
 const isActive = (a: Appointment) => a.status === 'Confirmed' || a.status === 'Pending';
@@ -427,7 +427,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
                     <p className="mt-6 text-ink-soft">No bookings match these filters.</p>
                   ) : (
                     <>
-                      <div className="mt-2 px-3 grid grid-cols-[5.5rem_1fr_6rem_auto] gap-4 text-xs text-ink-mute uppercase tracking-wide border-b border-line pb-2">
+                      <div className="mt-2 grid grid-cols-[5.5rem_1fr_7rem_auto] gap-4 text-xs text-ink-mute uppercase tracking-wide border-y border-line py-2">
                         <span>Appt. date</span>
                         <span>Patient</span>
                         <span className="hidden sm:block">Booked at</span>
@@ -440,7 +440,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
                               type="button"
                               onClick={() => setSelectedId(a.id)}
                               aria-current={selectedId === a.id ? 'true' : undefined}
-                              className={`w-full text-left py-3.5 px-3 -mx-3 grid grid-cols-[5.5rem_1fr_6rem_auto] gap-4 items-baseline rounded-md transition-colors ${
+                              className={`w-full text-left py-3.5 grid grid-cols-[5.5rem_1fr_7rem_auto] gap-4 items-center rounded-md transition-colors ${
                                 selectedId === a.id ? 'bg-primary-wash' : 'hover:bg-paper-deep'
                               }`}
                             >
@@ -450,9 +450,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
                               </span>
                               <span className="min-w-0">
                                 <span className="block text-ink font-semibold truncate">{a.patientName}</span>
-                                <span className="block text-sm text-ink-mute truncate">
-                                  {a.patientPhone} · {a.problemDescription || 'No complaint given'}
-                                </span>
+                                <span className="block text-sm text-ink-mute truncate">{a.patientPhone}</span>
                               </span>
                               <span className="hidden sm:block text-xs text-ink-mute">{formatBookedAt(a.createdAt)}</span>
                               <StatusLabel status={a.status} />
