@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, ArrowLeft, ExternalLink, Loader2, Video, X } from 'lucide-react';
+import { AlertCircle, ArrowLeft, Check, Copy, ExternalLink, Loader2, Video, X } from 'lucide-react';
 import { Appointment } from '../types';
 import { whatsappLink } from '../utils/whatsapp';
 import { getBookingById } from '../lib/data';
@@ -32,12 +32,36 @@ function formatLongDate(iso: string): string {
     : date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 }
 
+function formatTimeRange(timeSlot: string): string {
+  const match = timeSlot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return timeSlot;
+  let h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const mer = match[3].toUpperCase();
+  if (mer === 'PM' && h < 12) h += 12;
+  if (mer === 'AM' && h === 12) h = 0;
+  const endTotal = h * 60 + m + 45;
+  let eh = Math.floor(endTotal / 60) % 24;
+  const em = endTotal % 60;
+  const eMer = eh < 12 ? 'AM' : 'PM';
+  if (eh > 12) eh -= 12;
+  if (eh === 0) eh = 12;
+  return `${timeSlot} – ${eh}:${String(em).padStart(2, '0')} ${eMer}`;
+}
+
 export const PatientDashboard: React.FC<PatientDashboardProps> = ({ isOpen, onClose, onBookNew, whatsapp, initialBookingId }) => {
   useScrollLock(isOpen);
   const [bookingId, setBookingId] = useState('');
   const [lookupError, setLookupError] = useState('');
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState<Appointment | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const copyBookingId = (id: string) => {
+    navigator.clipboard.writeText(id).catch(() => {});
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -180,6 +204,20 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({ isOpen, onCl
               </div>
 
               <dl className="mt-5 border-y border-line divide-y divide-line">
+                <div className="py-3 flex items-center justify-between gap-4">
+                  <dt className="text-sm text-ink-mute">Booking ID</dt>
+                  <dd className="flex items-center gap-3">
+                    <span className="font-mono text-ink">{booking.id}</span>
+                    <button
+                      type="button"
+                      onClick={() => copyBookingId(booking.id!)}
+                      className="text-sm text-primary flex items-center gap-1"
+                    >
+                      {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copied ? 'Copied' : 'Copy'}
+                    </button>
+                  </dd>
+                </div>
                 <div className="py-3 flex justify-between gap-4">
                   <dt className="text-sm text-ink-mute">Patient</dt>
                   <dd className="text-ink text-right">{booking.patientName}</dd>
@@ -190,13 +228,15 @@ export const PatientDashboard: React.FC<PatientDashboardProps> = ({ isOpen, onCl
                 </div>
                 <div className="py-3 flex justify-between gap-4">
                   <dt className="text-sm text-ink-mute">Time</dt>
-                  <dd className="text-ink">{booking.timeSlot}</dd>
-                </div>
-                <div className="py-3 flex justify-between gap-4">
-                  <dt className="text-sm text-ink-mute">Booking ID</dt>
-                  <dd className="font-mono text-ink">{booking.id}</dd>
+                  <dd className="text-ink">{formatTimeRange(booking.timeSlot)}</dd>
                 </div>
               </dl>
+
+              {booking.status === 'Pending' && (
+                <p className="mt-4 text-sm text-ink-soft">
+                  Your request is pending approval by the clinic. You'll receive a confirmation email once the doctor approves it. Keep your booking ID to track the status.
+                </p>
+              )}
 
               <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 text-sm">
                 {booking.status === 'Confirmed' && booking.meetingLink && (
