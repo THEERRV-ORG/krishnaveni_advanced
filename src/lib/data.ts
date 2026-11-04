@@ -90,6 +90,18 @@ export async function getSiteContent(): Promise<SiteContent> {
   };
 }
 
+/** Fetches Google reviews from the server-side cache endpoint. */
+export async function getGoogleReviews(): Promise<Testimonial[]> {
+  try {
+    const res = await fetch('/api/google-reviews');
+    if (!res.ok) return [];
+    const data: unknown = await res.json();
+    return Array.isArray(data) ? (data as Testimonial[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 // ---------------------------------------------------------------- slots
 
 /** Seats already taken in each slot on a date, keyed by slot ID. */

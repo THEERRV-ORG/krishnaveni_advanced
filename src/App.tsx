@@ -31,7 +31,7 @@ import {
 
 import { MessageCircle } from 'lucide-react';
 import { whatsappLink } from './utils/whatsapp';
-import { FALLBACK_CONTENT, getSiteContent, type SiteContent } from './lib/data';
+import { FALLBACK_CONTENT, getGoogleReviews, getSiteContent, type SiteContent } from './lib/data';
 import { routeForPath } from './routes';
 import { currentSectionPath, getPendingPath, scrollToPath } from './navigation';
 
@@ -73,13 +73,13 @@ export default function App() {
 
   // Fetch live store data from backend Express server
   useEffect(() => {
-    getSiteContent()
-      .then(content => {
+    Promise.all([getSiteContent(), getGoogleReviews()])
+      .then(([content, googleReviews]) => {
         setSiteContent(content);
         setClinicInfo(content.clinic);
         setDoctor(content.doctor);
         setServices(content.services);
-        setTestimonials(content.testimonials);
+        setTestimonials([...content.testimonials, ...googleReviews]);
         setFaqs(content.faqs);
       })
       .catch(err => console.error('Site content could not be loaded; showing built-in copy.', err));

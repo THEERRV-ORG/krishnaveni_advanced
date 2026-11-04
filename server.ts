@@ -10,6 +10,7 @@ import { getSeoContent } from './server/siteContent.js';
 import { sendBookingEmails } from './server/bookingEmail.js';
 import { sendWhatsAppNotifications, type WhatsAppEvent } from './server/whatsappMsg91.js';
 import { renderClientConfig } from './server/clientConfig.js';
+import { getGoogleReviews, syncGoogleReviews } from './server/googleReviews.js';
 
 const currentFilePath = typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : '';
 const currentDirPath = currentFilePath ? path.dirname(currentFilePath) : process.cwd();
@@ -62,6 +63,17 @@ app.post('/api/whatsapp-notify', async (req, res) => {
   } catch (err) {
     console.error('[whatsapp-notify]', err);
     res.status(500).json({ message: 'WhatsApp notification could not be sent.' });
+  }
+});
+
+// ================= GOOGLE REVIEWS =================
+app.get('/api/google-reviews', async (_req, res) => {
+  try {
+    const reviews = await getGoogleReviews();
+    res.json(reviews);
+  } catch (err) {
+    console.error('[google-reviews]', err);
+    res.status(500).json([]);
   }
 });
 
@@ -1960,6 +1972,10 @@ async function startServer() {
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`[Krishnaveni Rehab App] Server listening on http://0.0.0.0:${PORT}`);
   });
+
+  // Fetch Google reviews on startup, then refresh every 24 hours.
+  syncGoogleReviews().catch(() => {});
+  setInterval(() => syncGoogleReviews().catch(() => {}), 24 * 60 * 60_000);
 
   server.on('error', (err: any) => {
     if (err.code === 'EADDRINUSE') {
