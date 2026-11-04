@@ -427,7 +427,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
                     <p className="mt-6 text-ink-soft">No bookings match these filters.</p>
                   ) : (
                     <>
-                      <div className="mt-2 grid grid-cols-[5.5rem_1fr_7rem_auto] gap-4 text-xs text-ink-mute uppercase tracking-wide border-y border-line py-2">
+                      <div className="mt-2 grid grid-cols-[5.5rem_1fr_8.5rem_auto] gap-4 text-xs text-ink-mute uppercase tracking-wide border-y border-line py-2">
                         <span>Appt. date</span>
                         <span>Patient</span>
                         <span className="hidden sm:block">Booked at</span>
@@ -440,7 +440,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
                               type="button"
                               onClick={() => setSelectedId(a.id)}
                               aria-current={selectedId === a.id ? 'true' : undefined}
-                              className={`w-full text-left py-3.5 grid grid-cols-[5.5rem_1fr_7rem_auto] gap-4 items-center rounded-md transition-colors ${
+                              className={`w-full text-left py-3.5 grid grid-cols-[5.5rem_1fr_8.5rem_auto] gap-4 items-center rounded-md transition-colors ${
                                 selectedId === a.id ? 'bg-primary-wash' : 'hover:bg-paper-deep'
                               }`}
                             >
@@ -452,7 +452,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
                                 <span className="block text-ink font-semibold truncate">{a.patientName}</span>
                                 <span className="block text-sm text-ink-mute truncate">{a.patientPhone}</span>
                               </span>
-                              <span className="hidden sm:block text-xs text-ink-mute">{formatBookedAt(a.createdAt)}</span>
+                              <span className="hidden sm:block text-xs text-ink-mute whitespace-nowrap">{formatBookedAt(a.createdAt)}</span>
                               <StatusLabel status={a.status} />
                             </button>
                           </li>
