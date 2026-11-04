@@ -312,7 +312,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         className="bg-paper w-full max-w-xl rounded-t-lg sm:rounded-lg shadow-xl flex flex-col max-h-[96vh]"
       >
 
-        <div className="px-6 pt-5 pb-4 border-b border-line flex items-start justify-between gap-4 shrink-0">
+        <div className={`px-6 border-b border-line flex items-start justify-between gap-4 shrink-0 ${step === 3 ? 'pt-3 pb-2' : 'pt-5 pb-4'}`}>
           <div>
             {step !== 3 && <h2 id="booking-title" className="text-2xl text-ink">Book a consultation</h2>}
             {step !== 3 && <p className="text-sm text-ink-mute mt-0.5">With Dr. P. Sai Tejaswini · 45 minutes on Google Meet</p>}
@@ -582,7 +582,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
         </div>
 
-        <div className="px-6 py-4 border-t border-line flex items-center justify-between shrink-0">
+        <div className={`px-6 border-t border-line flex items-center justify-between shrink-0 ${step === 3 ? 'py-2' : 'py-4'}`}>
           {step === 2 ? (
             <button
               type="button"
