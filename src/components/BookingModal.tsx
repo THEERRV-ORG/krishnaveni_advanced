@@ -314,7 +314,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
         <div className="px-6 pt-5 pb-4 border-b border-line flex items-start justify-between gap-4 shrink-0">
           <div>
-            <h2 id="booking-title" className="text-2xl text-ink">Book a consultation</h2>
+            {step !== 3 && <h2 id="booking-title" className="text-2xl text-ink">Book a consultation</h2>}
             {step !== 3 && <p className="text-sm text-ink-mute mt-0.5">With Dr. P. Sai Tejaswini · 45 minutes on Google Meet</p>}
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="p-2 -mr-2 text-ink-soft hover:text-ink">
@@ -322,6 +322,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
           </button>
         </div>
 
+        {step !== 3 && (
         <ol className="px-6 py-3 flex gap-5 text-sm border-b border-line shrink-0">
           {STEP_LABELS.map((label, idx) => {
             const n = idx + 1;
@@ -336,6 +337,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             );
           })}
         </ol>
+        )}
 
         <div ref={scrollRef} className="overflow-y-auto overscroll-contain flex-1 px-6 py-6">
 
@@ -524,35 +526,37 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             return (
               <div>
                 <div className="flex items-center gap-3">
-                  <CalendarCheck className="w-9 h-9 text-green-600 shrink-0" />
-                  <h3 className="text-2xl text-ink">Appointment booking request submitted</h3>
+                  <CalendarCheck className="w-6 h-6 text-green-600 shrink-0" />
+                  <h3 className="text-xl text-ink">Appointment booking request submitted</h3>
                 </div>
-                <p className="mt-1 text-ink-soft">Your request is pending approval by the clinic. You will get updates through WhatsApp. Keep your booking ID to track the status.</p>
+                <p className="mt-1 text-ink-soft">Your booking is awaiting clinic approval. Updates will be sent to you on WhatsApp.</p>
 
-                <dl className="mt-6 border-y border-line divide-y divide-line">
-                  <div className="py-3 flex items-center justify-between gap-4">
-                    <dt className="text-sm text-ink-mute">Booking ID</dt>
-                    <dd className="flex items-center gap-3">
-                      <span className="font-mono text-ink">{confirmedAppointment.id}</span>
-                      <button
-                        type="button"
-                        onClick={() => copyText(confirmedAppointment.id, 'id')}
-                        className="text-sm text-primary flex items-center gap-1"
-                      >
-                        {copied === 'id' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        {copied === 'id' ? 'Copied' : 'Copy'}
-                      </button>
-                    </dd>
+                <div className="mt-6 space-y-2">
+                  <div className="bg-surface-soft border border-line rounded-lg px-4 py-3 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs text-ink-mute mb-0.5">Booking ID</p>
+                      <p className="font-mono text-sm text-ink">{confirmedAppointment.id}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => copyText(confirmedAppointment.id, 'id')}
+                      className="text-sm text-primary flex items-center gap-1 shrink-0"
+                    >
+                      {copied === 'id' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copied === 'id' ? 'Copied' : 'Copy'}
+                    </button>
                   </div>
-                  <div className="py-3 flex justify-between gap-4">
-                    <dt className="text-sm text-ink-mute">Date</dt>
-                    <dd className="text-ink text-right">{formatLongDate(confirmedAppointment.date)}</dd>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-surface-soft border border-line rounded-lg px-4 py-3">
+                      <p className="text-xs text-ink-mute mb-0.5">Date</p>
+                      <p className="text-sm text-ink">{formatLongDate(confirmedAppointment.date)}</p>
+                    </div>
+                    <div className="bg-surface-soft border border-line rounded-lg px-4 py-3">
+                      <p className="text-xs text-ink-mute mb-0.5">Time</p>
+                      <p className="text-sm text-ink">{formatTimeRange(confirmedAppointment.timeSlot)}</p>
+                    </div>
                   </div>
-                  <div className="py-3 flex justify-between gap-4">
-                    <dt className="text-sm text-ink-mute">Time</dt>
-                    <dd className="text-ink">{formatTimeRange(confirmedAppointment.timeSlot)}</dd>
-                  </div>
-                </dl>
+                </div>
 
                 <div className="mt-4 border-l-[3px] border-blue-500 bg-surface-muted rounded-r-md px-4 py-3">
                   <div className="flex items-center gap-2 mb-1">
