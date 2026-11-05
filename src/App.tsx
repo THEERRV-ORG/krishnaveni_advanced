@@ -173,7 +173,7 @@ export default function App() {
         <AboutDoctor doctor={doctor} onOpenBooking={() => handleOpenBooking('Online Consultation')} />
         <ServicesGrid />
         <HowItWorks />
-        <TestimonialsSection testimonials={testimonials} whatsapp={clinicInfo.whatsapp} />
+        <TestimonialsSection whatsapp={clinicInfo.whatsapp} />
         <FAQSection faqs={faqs} />
         <ContactSection clinicInfo={clinicInfo} />
       </main>
