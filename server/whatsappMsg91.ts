@@ -40,19 +40,25 @@ async function sendMsg91Template(
 ): Promise<boolean> {
   if (!authKey || !templateName) return false;
 
-  const parameters = variables.map(v => ({ type: 'text', text: String(v.value), parameter_name: v.name }));
+  const components: Record<string, { type: string; value: string; parameter_name: string }> = {};
+  for (const v of variables) {
+    components[`body_${v.name}`] = { type: 'text', value: String(v.value), parameter_name: v.name };
+  }
 
   const payload = {
     integrated_number: senderNumber,
     content_type: 'template',
     payload: {
-      to: toNumber,
+      messaging_product: 'whatsapp',
       type: 'template',
       template: {
         name: templateName,
-        language: { code: 'en' },
-        components: [
-          { type: 'body', parameters },
+        language: { code: 'en', policy: 'deterministic' },
+        to_and_components: [
+          {
+            to: [toNumber],
+            components,
+          },
         ],
       },
     },
@@ -146,11 +152,14 @@ export async function sendWhatsAppNotifications(
         cfg.templateDoctorAlert,
         [
           { name: 'patient_name', value: apt.patientName },
+          { name: 'age', value: apt.patientAge ? String(apt.patientAge) : '—' },
+          { name: 'gender', value: apt.patientGender || '—' },
           { name: 'date', value: apt.date },
           { name: 'time', value: apt.timeSlot },
           { name: 'patient_phone', value: apt.patientPhone },
           { name: 'patient_email', value: apt.patientEmail },
           { name: 'complaint', value: apt.problemDescription || '—' },
+          { name: 'booking_id', value: bookingId },
         ],
       );
       results.push(sent);
@@ -165,7 +174,6 @@ export async function sendWhatsAppNotifications(
           { name: 'patient_name', value: apt.patientName },
           { name: 'date', value: apt.date },
           { name: 'time', value: apt.timeSlot },
-          { name: 'doctor_name', value: apt.doctorName || 'Dr. P. Sai Tejaswini' },
           { name: 'meet_link', value: apt.meetingLink || '' },
           { name: 'booking_id', value: bookingId },
         ],
