@@ -1,17 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   X,
-  CheckCircle2,
-  Video,
+  CalendarCheck,
   ArrowLeft,
   Loader2,
   Copy,
   Check,
-  ExternalLink,
   AlertCircle,
 } from 'lucide-react';
 import { Service, ConsultationType, TimeSlot, Appointment } from '../types';
-import { BookingError, createBooking, getTakenSeats, requestBookingEmails, type SiteContent } from '../lib/data';
+import { BookingError, createBooking, getTakenSeats, type SiteContent } from '../lib/data';
 import { whatsappLink } from '../utils/whatsapp';
 import { useScrollLock } from '../hooks/useScrollLock';
 
@@ -20,6 +18,15 @@ function getTodayDateString(): string {
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, '0');
   const d = String(now.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function getEndOfCurrentMonthDateString(): string {
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const y = lastDay.getFullYear();
+  const m = String(lastDay.getMonth() + 1).padStart(2, '0');
+  const d = String(lastDay.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
@@ -42,9 +49,12 @@ function isSlotInFutureForDate(slotTimeString: string, dateStr: string): boolean
   return parseSlotMinutes(slotTimeString) > now.getHours() * 60 + now.getMinutes();
 }
 
-// Indian mobile: 10 digits, starts with 6-9
+// Indian mobile: 10 digits, starts with 6-9, not all same digit
 function isValidIndianPhone(phone: string): boolean {
-  return /^[6-9]\d{9}$/.test(phone.replace(/\s/g, ''));
+  const d = phone.replace(/\s/g, '');
+  if (!/^[6-9]\d{9}$/.test(d)) return false;
+  if (/^(\d)\1{9}$/.test(d)) return false; // e.g. 9999999999
+  return true;
 }
 
 function validateName(value: string): string {
@@ -62,9 +72,22 @@ function validateAge(value: number | ''): string {
   return '';
 }
 
+const DISPOSABLE_DOMAINS = new Set([
+  'mailinator.com', 'tempmail.com', 'guerrillamail.com', 'throwaway.email',
+  'yopmail.com', 'sharklasers.com', 'trashmail.com', 'fakeinbox.com',
+  'maildrop.cc', 'dispostable.com', 'mailnull.com', 'spamgourmet.com',
+  'getairmail.com', 'spamherelots.com', 'tempr.email', 'discard.email',
+  'mailnesia.com', 'spamex.com', 'trashmail.io', 'tempinbox.com',
+]);
+
 function validateEmail(value: string): string {
-  if (!value.trim()) return 'Email is required.';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) return 'Enter a valid email address.';
+  const v = value.trim().toLowerCase();
+  if (!v) return 'Email is required.';
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return 'Enter a valid email address.';
+  const domain = v.split('@')[1];
+  if (DISPOSABLE_DOMAINS.has(domain)) return 'Disposable email addresses are not allowed.';
+  const local = v.split('@')[0];
+  if (/^(.)\1{4,}/.test(local)) return 'Enter a valid email address.'; // e.g. aaaa@gmail.com
   return '';
 }
 
@@ -72,6 +95,23 @@ function formatLongDate(iso: string): string {
   const date = new Date(`${iso}T00:00:00`);
   if (Number.isNaN(date.getTime())) return iso;
   return date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function formatTimeRange(timeSlot: string): string {
+  const match = timeSlot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return timeSlot;
+  let h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const mer = match[3].toUpperCase();
+  if (mer === 'PM' && h < 12) h += 12;
+  if (mer === 'AM' && h === 12) h = 0;
+  const endTotal = h * 60 + m + 45;
+  let eh = Math.floor(endTotal / 60) % 24;
+  const em = endTotal % 60;
+  const eMer = eh < 12 ? 'AM' : 'PM';
+  if (eh > 12) eh -= 12;
+  if (eh === 0) eh = 12;
+  return `${timeSlot} – ${eh}:${String(em).padStart(2, '0')} ${eMer}`;
 }
 
 const inputClass =
@@ -90,7 +130,7 @@ interface BookingModalProps {
   onBookingComplete: (appointment: Appointment) => void;
 }
 
-const STEP_LABELS = ['Date and time', 'Your details', 'Confirmed'];
+const STEP_LABELS = ['Date and time', 'Your details', 'Submitted'];
 
 export const BookingModal: React.FC<BookingModalProps> = ({
   content,
@@ -144,6 +184,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
   const [confirmedAppointment, setConfirmedAppointment] = useState<Appointment | null>(null);
   const [copied, setCopied] = useState<'id' | 'details' | null>(null);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
   const prevIsOpenRef = useRef(false);
   useEffect(() => {
     const justOpened = isOpen && !prevIsOpenRef.current;
@@ -242,7 +283,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
       );
       setConfirmedAppointment(appointment);
       setStep(3);
-      requestBookingEmails(appointment.id);
+      setTimeout(() => scrollRef.current?.scrollTo({ top: 0 }), 0);
       onBookingComplete(appointment);
     } catch (err) {
       console.error('Booking failed', err);
@@ -271,16 +312,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         className="bg-paper w-full max-w-xl rounded-t-lg sm:rounded-lg shadow-xl flex flex-col max-h-[96vh]"
       >
 
-        <div className="px-6 pt-5 pb-4 border-b border-line flex items-start justify-between gap-4 shrink-0">
+        <div className={`px-6 border-b border-line flex items-start justify-between gap-4 shrink-0 ${step === 3 ? 'pt-3 pb-2' : 'pt-5 pb-4'}`}>
           <div>
-            <h2 id="booking-title" className="text-2xl text-ink">Book a consultation</h2>
-            <p className="text-sm text-ink-mute mt-0.5">With Dr. P. Sai Tejaswini · 45 minutes on Google Meet</p>
+            {step !== 3 && <h2 id="booking-title" className="text-2xl text-ink">Book a consultation</h2>}
+            {step !== 3 && <p className="text-sm text-ink-mute mt-0.5">With Dr. P. Sai Tejaswini · 45 minutes on Google Meet</p>}
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="p-2 -mr-2 text-ink-soft hover:text-ink">
             <X className="w-5 h-5" />
           </button>
         </div>
 
+        {step !== 3 && (
         <ol className="px-6 py-3 flex gap-5 text-sm border-b border-line shrink-0">
           {STEP_LABELS.map((label, idx) => {
             const n = idx + 1;
@@ -295,8 +337,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             );
           })}
         </ol>
+        )}
 
-        <div className="overflow-y-auto overscroll-contain flex-1 px-6 py-6">
+        <div ref={scrollRef} className="overflow-y-auto overscroll-contain flex-1 px-6 py-6">
 
           {step === 1 && (
             <div className="space-y-6">
@@ -307,6 +350,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   type="date"
                   value={selectedDate}
                   min={getTodayDateString()}
+                  max={getEndOfCurrentMonthDateString()}
                   onChange={e => setSelectedDate(e.target.value)}
                   className={inputClass}
                 />
@@ -434,15 +478,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
               </div>
 
               <div>
-                <label htmlFor="p-problem" className={labelClass}>What would you like help with?</label>
+                <label htmlFor="p-problem" className={labelClass}>Describe your condition or concern</label>
                 <textarea
                   id="p-problem"
                   rows={3}
+                  maxLength={300}
                   placeholder="Where it hurts, for how long, and anything that makes it better or worse."
                   value={problemDescription}
                   onChange={e => setProblemDescription(e.target.value)}
                   className={`${inputClass} resize-none`}
                 />
+                <p className="mt-1 text-xs text-ink-mute text-right">{problemDescription.length}/300</p>
               </div>
 
               <p className="text-sm text-ink-soft bg-primary-wash rounded-md px-3 py-2.5">
@@ -479,55 +525,49 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
             return (
               <div>
-                <CheckCircle2 className="w-9 h-9 text-primary" />
-                <h3 className="mt-3 text-2xl text-ink">Your consultation is booked</h3>
-                <p className="mt-1 text-ink-soft">Keep your booking ID. You'll need it to track or change the booking.</p>
+                <div className="flex items-center gap-3">
+                  <CalendarCheck className="w-6 h-6 text-green-600 shrink-0" />
+                  <h3 className="text-xl text-ink">Appointment booking request submitted</h3>
+                </div>
+                <p className="mt-1 text-ink-soft">Your booking is awaiting clinic approval. Updates will be sent to you on WhatsApp.</p>
 
-                <dl className="mt-6 border-y border-line divide-y divide-line">
-                  <div className="py-3 flex items-center justify-between gap-4">
-                    <dt className="text-sm text-ink-mute">Booking ID</dt>
-                    <dd className="flex items-center gap-3">
-                      <span className="font-mono text-ink">{confirmedAppointment.id}</span>
-                      <button
-                        type="button"
-                        onClick={() => copyText(confirmedAppointment.id, 'id')}
-                        className="text-sm text-primary flex items-center gap-1"
-                      >
-                        {copied === 'id' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                        {copied === 'id' ? 'Copied' : 'Copy'}
-                      </button>
-                    </dd>
-                  </div>
-                  <div className="py-3 flex justify-between gap-4">
-                    <dt className="text-sm text-ink-mute">Date</dt>
-                    <dd className="text-ink text-right">{formatLongDate(confirmedAppointment.date)}</dd>
-                  </div>
-                  <div className="py-3 flex justify-between gap-4">
-                    <dt className="text-sm text-ink-mute">Time</dt>
-                    <dd className="text-ink">{confirmedAppointment.timeSlot}</dd>
-                  </div>
-                </dl>
-
-                {meetLink && (
-                  <div className="mt-6">
-                    <a
-                      href={meetLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 bg-primary hover:bg-primary-deep text-paper font-semibold px-5 py-2.5 rounded-md transition-colors"
+                <div className="mt-6 space-y-2">
+                  <div className="bg-surface-soft border border-line rounded-lg px-4 py-3 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs text-ink-mute mb-0.5">Booking ID</p>
+                      <p className="font-mono text-sm text-ink">{confirmedAppointment.id}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => copyText(confirmedAppointment.id, 'id')}
+                      className="text-sm text-primary flex items-center gap-1 shrink-0"
                     >
-                      <Video className="w-4 h-4" />
-                      Open the consultation link
-                      <ExternalLink className="w-3.5 h-3.5 opacity-80" />
-                    </a>
-                    <p className="mt-2 text-sm text-ink-mute">Join five minutes before your time.</p>
+                      {copied === 'id' ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+                      {copied === 'id' ? 'Copied' : 'Copy'}
+                    </button>
                   </div>
-                )}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="bg-surface-soft border border-line rounded-lg px-4 py-3">
+                      <p className="text-xs text-ink-mute mb-0.5">Date</p>
+                      <p className="text-sm text-ink">{formatLongDate(confirmedAppointment.date)}</p>
+                    </div>
+                    <div className="bg-surface-soft border border-line rounded-lg px-4 py-3">
+                      <p className="text-xs text-ink-mute mb-0.5">Time</p>
+                      <p className="text-sm text-ink">{formatTimeRange(confirmedAppointment.timeSlot)}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-4 border-l-[3px] border-blue-500 bg-surface-muted rounded-r-md px-4 py-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-sm font-medium text-ink">What happens next?</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-ink-mute" aria-hidden="true"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5 text-green-500" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M11.95 2C6.408 2 2 6.408 2 11.95c0 1.953.561 3.773 1.526 5.312L2 22l4.859-1.49A9.903 9.903 0 0 0 11.95 22C17.492 22 22 17.592 22 11.95S17.492 2 11.95 2z"/></svg>
+                  </div>
+                  <p className="text-sm text-ink-mute">Once the clinic approves your request, you'll receive the Google Meet link via email and WhatsApp.</p>
+                </div>
 
                 <div className="mt-6 flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                  <a href={waUrl} target="_blank" rel="noopener noreferrer" className="text-primary font-semibold underline underline-offset-4">
-                    Send details to WhatsApp
-                  </a>
                   <button
                     type="button"
                     onClick={() => copyText(details, 'details')}
@@ -542,7 +582,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
         </div>
 
-        <div className="px-6 py-4 border-t border-line flex items-center justify-between shrink-0">
+        <div className={`px-6 border-t border-line flex items-center justify-between shrink-0 ${step === 3 ? 'py-2' : 'py-4'}`}>
           {step === 2 ? (
             <button
               type="button"

@@ -8,7 +8,9 @@ import { routeForPath } from './src/routes.js';
 import { HEAD_PLACEHOLDER, renderHead, renderRobots, renderSitemap, siteUrlFor } from './seo.js';
 import { getSeoContent } from './server/siteContent.js';
 import { sendBookingEmails } from './server/bookingEmail.js';
+import { sendWhatsAppNotifications, type WhatsAppEvent } from './server/whatsappMsg91.js';
 import { renderClientConfig } from './server/clientConfig.js';
+import { getGoogleReviews, syncGoogleReviews } from './server/googleReviews.js';
 
 const currentFilePath = typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : '';
 const currentDirPath = currentFilePath ? path.dirname(currentFilePath) : process.cwd();
@@ -44,6 +46,34 @@ app.post('/api/booking-email', async (req, res) => {
   } catch (err) {
     console.error('[booking-email]', err);
     res.status(500).json({ message: 'The emails could not be sent.' });
+  }
+});
+
+// ================= WHATSAPP NOTIFICATIONS (MSG91) =================
+// The same route is a Vercel Function in api/whatsapp-notify.ts.
+const VALID_WA_EVENTS: WhatsAppEvent[] = ['pending', 'confirmed', 'cancelled'];
+app.post('/api/whatsapp-notify', async (req, res) => {
+  const event = req.body?.event as WhatsAppEvent;
+  if (!VALID_WA_EVENTS.includes(event)) {
+    return res.status(400).json({ message: 'Invalid event. Must be pending, confirmed, or cancelled.' });
+  }
+  try {
+    const { status, message } = await sendWhatsAppNotifications(req.body?.bookingId, event);
+    res.status(status).json({ message });
+  } catch (err) {
+    console.error('[whatsapp-notify]', err);
+    res.status(500).json({ message: 'WhatsApp notification could not be sent.' });
+  }
+});
+
+// ================= GOOGLE REVIEWS =================
+app.get('/api/google-reviews', async (_req, res) => {
+  try {
+    const reviews = await getGoogleReviews();
+    res.json(reviews);
+  } catch (err) {
+    console.error('[google-reviews]', err);
+    res.status(500).json([]);
   }
 });
 
@@ -1942,6 +1972,10 @@ async function startServer() {
   const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`[Krishnaveni Rehab App] Server listening on http://0.0.0.0:${PORT}`);
   });
+
+  // Fetch Google reviews on startup, then refresh every 24 hours.
+  syncGoogleReviews().catch(() => {});
+  setInterval(() => syncGoogleReviews().catch(() => {}), 24 * 60 * 60_000);
 
   server.on('error', (err: any) => {
     if (err.code === 'EADDRINUSE') {

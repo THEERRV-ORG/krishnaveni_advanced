@@ -23,6 +23,7 @@ import {
   watchAdminUser,
 } from '../lib/adminAuth';
 import {
+  approveAppointment,
   cancelAppointment,
   getDefaultMeetingLink,
   isAdminAccount,
@@ -51,11 +52,11 @@ type Tab = 'overview' | 'appointments' | 'settings';
 type StatusFilter = 'All' | 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
 type WhenFilter = 'Upcoming' | 'Past' | 'All dates';
 
-const STATUS_STYLE: Record<string, { dot: string; text: string }> = {
-  Confirmed: { dot: 'bg-primary', text: 'text-primary' },
-  Pending: { dot: 'bg-amber-500', text: 'text-amber-700' },
-  Completed: { dot: 'bg-ink-mute', text: 'text-ink-soft' },
-  Cancelled: { dot: 'bg-red-500', text: 'text-red-700' },
+const STATUS_STYLE: Record<string, { dot: string; text: string; pill: string }> = {
+  Confirmed: { dot: 'bg-primary', text: 'text-primary', pill: 'bg-primary/10 border border-primary/25 text-primary' },
+  Pending: { dot: 'bg-amber-500', text: 'text-amber-700', pill: 'bg-amber-50 border border-amber-200 text-amber-700' },
+  Completed: { dot: 'bg-ink-mute', text: 'text-ink-soft', pill: 'bg-surface-soft border border-line text-ink-mute' },
+  Cancelled: { dot: 'bg-red-500', text: 'text-red-700', pill: 'bg-red-50 border border-red-200 text-red-700' },
 };
 
 const inputClass =
@@ -90,10 +91,45 @@ function formatDate(iso: string, opts: Intl.DateTimeFormatOptions): string {
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-IN', opts);
 }
 
+function formatTimeRange(timeSlot: string): string {
+  const match = timeSlot.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!match) return timeSlot;
+  let h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  const mer = match[3].toUpperCase();
+  if (mer === 'PM' && h < 12) h += 12;
+  if (mer === 'AM' && h === 12) h = 0;
+  const endTotal = h * 60 + m + 45;
+  let eh = Math.floor(endTotal / 60) % 24;
+  const em = endTotal % 60;
+  const eMer = eh < 12 ? 'AM' : 'PM';
+  if (eh > 12) eh -= 12;
+  if (eh === 0) eh = 12;
+  return `${timeSlot} – ${eh}:${String(em).padStart(2, '0')} ${eMer}`;
+}
+
+function formatBookedAt(createdAt: unknown): string {
+  if (!createdAt) return '—';
+  const d = new Date(createdAt as string);
+  if (Number.isNaN(d.getTime())) return '—';
+  const now = new Date();
+  const isToday = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return isToday ? `Today, ${time}` : `${d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}, ${time}`;
+}
+
 const isActive = (a: Appointment) => a.status === 'Confirmed' || a.status === 'Pending';
 
-const StatusLabel: React.FC<{ status: string }> = ({ status }) => {
+const StatusLabel: React.FC<{ status: string; pill?: boolean }> = ({ status, pill }) => {
   const style = STATUS_STYLE[status] ?? STATUS_STYLE.Pending;
+  if (pill) {
+    return (
+      <span className={`inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-1 rounded-full ${style.pill}`}>
+        <span className={`w-2 h-2 rounded-full ${style.dot}`} aria-hidden />
+        {status}
+      </span>
+    );
+  }
   return (
     <span className={`inline-flex items-center gap-1.5 text-sm font-semibold ${style.text}`}>
       <span className={`w-2 h-2 rounded-full ${style.dot}`} aria-hidden />
@@ -415,32 +451,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ isOpen, onClose,
                   {filtered.length === 0 ? (
                     <p className="mt-6 text-ink-soft">No bookings match these filters.</p>
                   ) : (
-                    <ul className="mt-2 divide-y divide-line border-y border-line">
-                      {filtered.map(a => (
-                        <li key={a.id}>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedId(a.id)}
-                            aria-current={selectedId === a.id ? 'true' : undefined}
-                            className={`w-full text-left py-3.5 px-3 -mx-3 grid grid-cols-[5.5rem_1fr_auto] gap-4 items-baseline rounded-md transition-colors ${
-                              selectedId === a.id ? 'bg-primary-wash' : 'hover:bg-paper-deep'
-                            }`}
-                          >
-                            <span className="text-sm text-ink">
-                              {formatDate(a.date, { day: 'numeric', month: 'short' })}
-                              <span className="block text-ink-mute">{a.timeSlot.split(' - ')[0]}</span>
-                            </span>
-                            <span className="min-w-0">
-                              <span className="block text-ink font-semibold truncate">{a.patientName}</span>
-                              <span className="block text-sm text-ink-mute truncate">
-                                {a.patientPhone} · {a.problemDescription || 'No complaint given'}
+                    <>
+                      <div className="mt-2 grid grid-cols-[5.5rem_1fr_8.5rem_6.5rem] gap-4 text-xs text-ink-mute uppercase tracking-wide border-y border-line py-2">
+                        <span>Appt. date</span>
+                        <span>Patient</span>
+                        <span className="hidden sm:block">Booked at</span>
+                        <span>Status</span>
+                      </div>
+                      <ul className="divide-y divide-line border-b border-line">
+                        {filtered.map(a => (
+                          <li key={a.id}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedId(a.id)}
+                              aria-current={selectedId === a.id ? 'true' : undefined}
+                              className={`w-full text-left py-3.5 grid grid-cols-[5.5rem_1fr_8.5rem_6.5rem] gap-4 items-center rounded-md transition-colors ${
+                                selectedId === a.id ? 'bg-primary-wash' : 'hover:bg-paper-deep'
+                              }`}
+                            >
+                              <span className="text-sm text-ink">
+                                {formatDate(a.date, { day: 'numeric', month: 'short' })}
+                                <span className="block text-ink-mute">{a.timeSlot.split(' - ')[0]}</span>
                               </span>
-                            </span>
-                            <StatusLabel status={a.status} />
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
+                              <span className="min-w-0">
+                                <span className="block text-ink font-semibold truncate">{a.patientName}</span>
+                                <span className="block text-sm text-ink-mute truncate">{a.patientPhone}</span>
+                              </span>
+                              <span className="hidden sm:block text-xs text-ink-mute whitespace-nowrap">{formatBookedAt(a.createdAt)}</span>
+                              <StatusLabel status={a.status} />
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </>
                   )}
                 </div>
 
@@ -593,7 +636,8 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
   };
 
   const facts: [string, React.ReactNode][] = [
-    ['When', `${formatDate(a.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${a.timeSlot}`],
+    ['Date', formatDate(a.date, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })],
+    ['Time slot', formatTimeRange(a.timeSlot)],
     ['Age and gender', [a.patientAge, a.patientGender].filter(Boolean).join(' · ') || '—'],
     ['Phone', (
       <span className="flex flex-wrap gap-x-4">
@@ -623,7 +667,7 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
             <h2 className="text-2xl text-ink">{a.patientName}</h2>
             <p className="mt-1 text-sm text-ink-mute">Booking ID <span className="font-mono text-ink-soft">{a.id}</span></p>
           </div>
-          <StatusLabel status={a.status} />
+          <StatusLabel status={a.status} pill />
         </div>
       </div>
 
@@ -689,7 +733,7 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
           </div>
         ) : (
           <div className="flex flex-wrap gap-3">
-            {isActive(a) && (
+            {a.status === 'Confirmed' && (
               <button
                 type="button"
                 disabled={saving !== null}
@@ -704,10 +748,11 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
               <button
                 type="button"
                 disabled={saving !== null}
-                onClick={() => run('confirm', () => updateAppointmentFields(a, { status: 'Confirmed' }), 'Booking confirmed.')}
+                onClick={() => run('confirm', () => approveAppointment(a), 'Booking approved. Confirmation email sent.')}
                 className="px-4 py-2 border border-primary text-primary text-sm font-semibold rounded-md disabled:opacity-60"
               >
-                Confirm
+                {saving === 'confirm' && <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" />}
+                Approve
               </button>
             )}
             {isActive(a) && (

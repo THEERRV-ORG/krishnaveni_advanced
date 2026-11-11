@@ -90,6 +90,18 @@ export async function getSiteContent(): Promise<SiteContent> {
   };
 }
 
+/** Fetches Google reviews from the server-side cache endpoint. */
+export async function getGoogleReviews(): Promise<Testimonial[]> {
+  try {
+    const res = await fetch('/api/google-reviews');
+    if (!res.ok) return [];
+    const data: unknown = await res.json();
+    return Array.isArray(data) ? (data as Testimonial[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 // ---------------------------------------------------------------- slots
 
 /** Seats already taken in each slot on a date, keyed by slot ID. */
@@ -173,7 +185,7 @@ export async function createBooking(input: BookingInput, content: SiteContent): 
       timeSlot: input.slot.timeString,
       slotId: input.slot.id,
       durationMinutes: 45,
-      status: 'Confirmed',
+      status: 'Pending',
       problemDescription: input.problemDescription,
       medicalReports: [],
       amountPaid: 0,
@@ -197,7 +209,9 @@ export async function createBooking(input: BookingInput, content: SiteContent): 
 
     try {
       await batch.commit();
-      return toAppointment({ ...record, createdAt: new Date().toISOString() });
+      const appointment = toAppointment({ ...record, createdAt: new Date().toISOString() });
+      requestWhatsAppNotify(id, 'pending');
+      return appointment;
     } catch (err: any) {
       // A seat that already exists cannot be written again, so the commit is refused.
       // If that seat is now taken, someone got there first: try the next one.
@@ -221,6 +235,28 @@ export function requestBookingEmails(bookingId: string): void {
       if (!res.ok) console.warn(`Booking emails were not sent (${res.status}).`);
     })
     .catch(err => console.warn('Booking emails could not be requested.', err));
+}
+
+/** Asks the server to send a WhatsApp notification via MSG91. Never throws. */
+function requestWhatsAppNotify(bookingId: string, event: 'pending' | 'confirmed' | 'cancelled'): void {
+  fetch('/api/whatsapp-notify', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ bookingId, event }),
+    keepalive: true,
+  })
+    .then(res => {
+      if (!res.ok) console.warn(`WhatsApp notification not sent (${res.status}).`);
+    })
+    .catch(err => console.warn('WhatsApp notification could not be requested.', err));
+}
+
+/** Approve a pending booking: sets status to Confirmed and triggers confirmation emails + WhatsApp. */
+export async function approveAppointment(apt: Appointment): Promise<Appointment> {
+  await setDoc(doc(db(), 'appointments', apt.id), { status: 'Confirmed' }, { merge: true });
+  requestBookingEmails(apt.id);
+  requestWhatsAppNotify(apt.id, 'confirmed');
+  return { ...apt, status: 'Confirmed' };
 }
 
 export async function getBookingById(id: string): Promise<Appointment | null> {
@@ -255,6 +291,7 @@ export async function cancelAppointment(apt: Appointment & { holdId?: string }, 
   batch.set(doc(store, 'appointments', apt.id), { status: 'Cancelled', cancellationReason: reason }, { merge: true });
   if (apt.holdId) batch.delete(doc(store, 'slotHolds', apt.holdId));
   await batch.commit();
+  requestWhatsAppNotify(apt.id, 'cancelled');
   return { ...apt, status: 'Cancelled', cancellationReason: reason };
 }
 

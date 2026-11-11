@@ -31,7 +31,7 @@ import {
 
 import { MessageCircle } from 'lucide-react';
 import { whatsappLink } from './utils/whatsapp';
-import { FALLBACK_CONTENT, getSiteContent, type SiteContent } from './lib/data';
+import { FALLBACK_CONTENT, getGoogleReviews, getSiteContent, type SiteContent } from './lib/data';
 import { routeForPath } from './routes';
 import { currentSectionPath, getPendingPath, scrollToPath } from './navigation';
 
@@ -56,17 +56,30 @@ export default function App() {
   const [bookingPreloadedIssues, setBookingPreloadedIssues] = useState<string>('');
 
   const [patientDashboardOpen, setPatientDashboardOpen] = useState(false);
+  const [patientDashboardInitialId, setPatientDashboardInitialId] = useState('');
   const [adminDashboardOpen, setAdminDashboardOpen] = useState(false);
+
+  // Auto-open track booking modal when URL is /track or has ?track=APT-xxxx
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const trackId = params.get('track');
+    const isTrackPath = window.location.pathname === '/track';
+    if (trackId || isTrackPath) {
+      if (trackId) setPatientDashboardInitialId(trackId.trim().toUpperCase());
+      setPatientDashboardOpen(true);
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
 
   // Fetch live store data from backend Express server
   useEffect(() => {
-    getSiteContent()
-      .then(content => {
+    Promise.all([getSiteContent(), getGoogleReviews()])
+      .then(([content, googleReviews]) => {
         setSiteContent(content);
         setClinicInfo(content.clinic);
         setDoctor(content.doctor);
         setServices(content.services);
-        setTestimonials(content.testimonials);
+        setTestimonials([...content.testimonials, ...googleReviews]);
         setFaqs(content.faqs);
       })
       .catch(err => console.error('Site content could not be loaded; showing built-in copy.', err));
@@ -160,7 +173,7 @@ export default function App() {
         <AboutDoctor doctor={doctor} onOpenBooking={() => handleOpenBooking('Online Consultation')} />
         <ServicesGrid />
         <HowItWorks />
-        <TestimonialsSection testimonials={testimonials} whatsapp={clinicInfo.whatsapp} />
+        <TestimonialsSection whatsapp={clinicInfo.whatsapp} />
         <FAQSection faqs={faqs} />
         <ContactSection clinicInfo={clinicInfo} />
       </main>
@@ -208,6 +221,7 @@ export default function App() {
         onClose={() => setPatientDashboardOpen(false)}
         onBookNew={() => handleOpenBooking('Online Consultation')}
         whatsapp={clinicInfo.whatsapp}
+        initialBookingId={patientDashboardInitialId}
       />
 
       {adminDashboardOpen && (
