@@ -417,11 +417,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   <label htmlFor="p-age" className={labelClass}>Age <span className="text-ink-mute">(optional)</span></label>
                   <input
                     id="p-age"
-                    type="number"
-                    min={1}
-                    max={120}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={3}
                     value={patientAge}
-                    onChange={e => { const v = e.target.value ? Number(e.target.value) : ''; setPatientAge(v); if (ageError) setAgeError(validateAge(v)); }}
+                    onChange={e => { const raw = e.target.value.replace(/\D/g, ''); const v = raw ? Number(raw) : ''; setPatientAge(v); if (ageError) setAgeError(validateAge(v)); }}
                     onBlur={() => setAgeError(validateAge(patientAge))}
                     className={`${inputClass} ${ageError ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''}`}
                   />
@@ -476,7 +476,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
               <div>
                 <label htmlFor="p-city" className={labelClass}>City <span className="text-ink-mute">(optional)</span></label>
-                <input id="p-city" type="text" autoComplete="address-level2" value={patientAddress} onChange={e => setPatientAddress(e.target.value)} className={inputClass} />
+                <input id="p-city" type="text" autoComplete="address-level2" maxLength={60} value={patientAddress} onChange={e => setPatientAddress(e.target.value.replace(/[^a-zA-ZÀ-ɏ\s'.,-]/g, ''))} className={inputClass} />
               </div>
 
               <div>

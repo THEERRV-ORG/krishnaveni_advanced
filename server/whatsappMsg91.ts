@@ -128,6 +128,16 @@ export async function sendWhatsAppNotifications(
 
   const results: boolean[] = [];
 
+  // Doctor number: Firestore overrides env var so admin can change it without redeploying.
+  let doctorNumber = cfg.doctorNumber;
+  try {
+    const clinicSnap = await getDoc(doc(store, 'settings', 'clinic'));
+    const firestorePhone = (clinicSnap.data() as { doctorWhatsapp?: string } | undefined)?.doctorWhatsapp?.trim();
+    if (firestorePhone) doctorNumber = firestorePhone;
+  } catch {
+    // Fall through to env var
+  }
+
   if (event === 'pending') {
     // Template 1: booking_pending → patient
     if (cfg.templatePending) {
@@ -145,8 +155,8 @@ export async function sendWhatsAppNotifications(
     }
 
     // Template 3: new_booking_alert → doctor (only if doctor number is configured)
-    if (cfg.templateDoctorAlert && cfg.doctorNumber) {
-      const doctorPhone = normalisePhone(cfg.doctorNumber);
+    if (cfg.templateDoctorAlert && doctorNumber) {
+      const doctorPhone = normalisePhone(doctorNumber);
       const sent = await sendMsg91Template(
         cfg.authKey, cfg.senderNumber, doctorPhone,
         cfg.templateDoctorAlert,
