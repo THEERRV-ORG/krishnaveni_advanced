@@ -664,7 +664,7 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
         </button>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="text-2xl text-ink">{a.patientName}</h2>
+            <h2 className="text-2xl text-ink truncate">{a.patientName}</h2>
             <p className="mt-1 text-sm text-ink-mute">Booking ID <span className="font-mono text-ink-soft">{a.id}</span></p>
           </div>
           <StatusLabel status={a.status} pill />
@@ -716,20 +716,17 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
 
         {confirmingCancel ? (
           <div className="space-y-3">
-            <label htmlFor="cancel-reason" className={labelClass}>Reason (shown to the clinic only)</label>
+            <label htmlFor="cancel-reason" className={labelClass}>Reason <span className="text-red-600">*</span></label>
             <input id="cancel-reason" type="text" value={cancelReason} onChange={e => setCancelReason(e.target.value)} placeholder="e.g. Patient asked to reschedule" className={`${inputClass} text-sm`} />
-            <div className="flex gap-3">
-              <button
-                type="button"
-                disabled={saving !== null}
-                onClick={() => run('cancel', () => cancelAppointment(a, cancelReason.trim() || 'Cancelled by clinic'), 'Booking cancelled. The time is free again.')}
-                className="inline-flex items-center gap-1.5 bg-red-700 hover:bg-red-800 text-white text-sm font-semibold px-4 py-2 rounded-md disabled:opacity-60"
-              >
-                {saving === 'cancel' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                Cancel booking
-              </button>
-              <button type="button" onClick={() => setConfirmingCancel(false)} className="text-sm text-ink-soft hover:text-ink">Keep it</button>
-            </div>
+            <button
+              type="button"
+              disabled={saving !== null || !cancelReason.trim()}
+              onClick={() => run('cancel', () => cancelAppointment(a, cancelReason.trim()), 'Booking cancelled. The time is free again.')}
+              className="inline-flex items-center gap-1.5 bg-red-700 hover:bg-red-800 text-white text-sm font-semibold px-4 py-2 rounded-md disabled:opacity-60"
+            >
+              {saving === 'cancel' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Cancel booking
+            </button>
           </div>
         ) : (
           <div className="flex flex-wrap gap-3">
@@ -745,30 +742,20 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
               </button>
             )}
             {a.status === 'Pending' && (
-              <button
-                type="button"
-                disabled={saving !== null}
-                onClick={() => run('confirm', () => approveAppointment(a), 'Booking approved. Confirmation email sent.')}
-                className="px-4 py-2 border border-primary text-primary text-sm font-semibold rounded-md disabled:opacity-60"
-              >
-                {saving === 'confirm' && <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" />}
-                Approve
-              </button>
-            )}
-            {isActive(a) && (
-              <button type="button" onClick={() => setConfirmingCancel(true)} className="px-2 py-2 text-sm text-red-700 hover:text-red-800 underline underline-offset-4">
-                Cancel booking
-              </button>
-            )}
-            {!isActive(a) && (
-              <button
-                type="button"
-                disabled={saving !== null}
-                onClick={() => run('reopen', () => reopenAppointment(a, maxPerSlot), 'Booking reopened as confirmed.')}
-                className="px-4 py-2 border border-line text-ink text-sm rounded-md hover:border-primary disabled:opacity-60"
-              >
-                Reopen as confirmed
-              </button>
+              <>
+                <button
+                  type="button"
+                  disabled={saving !== null}
+                  onClick={() => run('confirm', () => approveAppointment(a), 'Booking approved. Confirmation email sent.')}
+                  className="px-4 py-2 border border-primary text-primary text-sm font-semibold rounded-md disabled:opacity-60"
+                >
+                  {saving === 'confirm' && <Loader2 className="w-3.5 h-3.5 animate-spin inline mr-1" />}
+                  Approve
+                </button>
+                <button type="button" onClick={() => setConfirmingCancel(true)} className="px-2 py-2 text-sm text-red-700 hover:text-red-800 underline underline-offset-4">
+                  Cancel booking
+                </button>
+              </>
             )}
           </div>
         )}
