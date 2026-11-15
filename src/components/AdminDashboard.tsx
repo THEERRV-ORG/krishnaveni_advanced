@@ -26,6 +26,8 @@ import {
   approveAppointment,
   cancelAppointment,
   getDefaultMeetingLink,
+  getDoctorWhatsapp,
+  setDoctorWhatsapp,
   isAdminAccount,
   isSiteSetUp,
   listAppointments,
@@ -786,11 +788,16 @@ const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, adminEmail
   const [photoState, setPhotoState] = useState<FormState>(idle);
   const [defaultLink, setDefaultLink] = useState('');
   const [linkState, setLinkState] = useState<FormState>(idle);
+  const [doctorPhone, setDoctorPhone] = useState('');
+  const [doctorPhoneState, setDoctorPhoneState] = useState<FormState>(idle);
 
   useEffect(() => {
     getDefaultMeetingLink()
       .then(setDefaultLink)
       .catch(err => setLinkState(failure(err, 'The current link could not be loaded.')));
+    getDoctorWhatsapp()
+      .then(setDoctorPhone)
+      .catch(() => {});
   }, []);
 
   const uploadPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -829,6 +836,23 @@ const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, adminEmail
       setLinkState({ busy: false, message: 'Saved. New bookings will use this link.', error: false });
     } catch (err) {
       setLinkState(failure(err, 'The link could not be saved.'));
+    }
+  };
+
+  const saveDoctorPhone = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const digits = doctorPhone.replace(/\D/g, '');
+    const tenDigit = digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits;
+    if (digits && (tenDigit.length !== 10 || !/^[6-9]/.test(tenDigit))) {
+      setDoctorPhoneState({ busy: false, message: 'Enter a valid 10-digit Indian mobile number (starts with 6–9).', error: true });
+      return;
+    }
+    setDoctorPhoneState({ busy: true, message: '', error: false });
+    try {
+      await setDoctorWhatsapp(digits);
+      setDoctorPhoneState({ busy: false, message: digits ? 'Saved. Doctor alerts will go to this number.' : 'Cleared. Falling back to the configured default.', error: false });
+    } catch (err) {
+      setDoctorPhoneState(failure(err, 'Could not save the number.'));
     }
   };
 
@@ -873,6 +897,33 @@ const Settings: React.FC<SettingsProps> = ({ doctor, onDoctorUpdated, adminEmail
           </button>
           {linkState.message && (
             <p className={`mt-2 text-sm ${linkState.error ? 'text-red-700' : 'text-primary'}`}>{linkState.message}</p>
+          )}
+        </div>
+      </form>
+
+      <form onSubmit={saveDoctorPhone} className={section}>
+        <div className="md:col-span-4">
+          <h2 className="text-xl text-ink">Doctor WhatsApp alert number</h2>
+          <p className="mt-1 text-sm text-ink-soft">New booking alerts are sent to this WhatsApp number. Leave empty to use the default number already configured.</p>
+        </div>
+        <div className="md:col-span-8 max-w-lg">
+          <label htmlFor="doctor-phone" className={labelClass}>WhatsApp number (10 digits)</label>
+          <input
+            id="doctor-phone"
+            type="text"
+            inputMode="numeric"
+            maxLength={13}
+            placeholder="e.g. 9876543210"
+            value={doctorPhone}
+            onChange={e => setDoctorPhone(e.target.value.replace(/\D/g, ''))}
+            className={inputClass}
+          />
+          <button type="submit" disabled={doctorPhoneState.busy} className="mt-3 inline-flex items-center gap-1.5 bg-primary hover:bg-primary-deep text-paper text-sm font-semibold px-4 py-2 rounded-md disabled:opacity-60">
+            {doctorPhoneState.busy && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+            Save number
+          </button>
+          {doctorPhoneState.message && (
+            <p className={`mt-2 text-sm ${doctorPhoneState.error ? 'text-red-700' : 'text-primary'}`}>{doctorPhoneState.message}</p>
           )}
         </div>
       </form>

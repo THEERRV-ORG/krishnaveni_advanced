@@ -328,6 +328,15 @@ export async function setDefaultMeetingLink(link: string): Promise<void> {
   await setDoc(doc(db(), 'settings', 'clinic'), { googleMeetLink: link, teleConsultationLink: link }, { merge: true });
 }
 
+export async function getDoctorWhatsapp(): Promise<string> {
+  const snap = await getDoc(doc(db(), 'settings', 'clinic'));
+  return (snap.data() as { doctorWhatsapp?: string } | undefined)?.doctorWhatsapp ?? '';
+}
+
+export async function setDoctorWhatsapp(phone: string): Promise<void> {
+  await setDoc(doc(db(), 'settings', 'clinic'), { doctorWhatsapp: phone }, { merge: true });
+}
+
 export const MAX_PATIENTS_PER_SLOT = 5;
 
 export async function getMaxPerSlot(): Promise<number | null> {
