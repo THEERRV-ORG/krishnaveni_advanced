@@ -664,7 +664,7 @@ const AppointmentDetail: React.FC<AppointmentDetailProps> = ({ appointment: a, o
         </button>
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            <h2 className="text-2xl text-ink truncate">{a.patientName}</h2>
+            <h2 className="text-2xl text-ink break-words">{a.patientName}</h2>
             <p className="mt-1 text-sm text-ink-mute">Booking ID <span className="font-mono text-ink-soft">{a.id}</span></p>
           </div>
           <StatusLabel status={a.status} pill />
