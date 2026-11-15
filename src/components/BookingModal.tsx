@@ -61,6 +61,7 @@ function validateName(value: string): string {
   const t = value.trim();
   if (!t) return 'Full name is required.';
   if (t.length < 3) return 'Name must be at least 3 characters.';
+  if (t.length > 60) return 'Name must be 60 characters or fewer.';
   if (!/^[a-zA-ZÀ-ɏ\s'.'-]+$/.test(t)) return 'Name should contain letters only.';
   if (/^(.)\1+$/i.test(t.replace(/\s/g, ''))) return 'Please enter your real name.';
   return '';
@@ -403,6 +404,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                   type="text"
                   autoComplete="name"
                   value={patientName}
+                  maxLength={60}
                   onChange={e => { setPatientName(e.target.value); if (nameError) setNameError(validateName(e.target.value)); }}
                   onBlur={() => setNameError(validateName(patientName))}
                   className={`${inputClass} ${nameError ? 'border-red-400 focus:border-red-500 focus:ring-red-200' : ''}`}
