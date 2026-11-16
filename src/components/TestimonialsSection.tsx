@@ -24,7 +24,7 @@ export const TestimonialsSection: React.FC<TestimonialsSectionProps> = ({ whatsa
       </div>
 
       <div className="mt-12 max-w-6xl mx-auto px-4 sm:px-6">
-        <div data-repu-inline="1e36d8c570ba9108" />
+        <div data-repu-inline={import.meta.env.VITE_REPU_WIDGET_ID} />
       </div>
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
